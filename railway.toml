@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python paper_trader.py --capital 500"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
