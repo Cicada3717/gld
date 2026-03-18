@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.png
+paper_trades.csv
+paper_state.json
+.claude/

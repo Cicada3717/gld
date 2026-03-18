@@ -7,3 +7,5 @@ ta
 ib_insync
 statsmodels
 scipy
+streamlit
+plotly
