@@ -3,4 +3,6 @@ __pycache__/
 *.png
 paper_trades.csv
 paper_state.json
+zone_trades.csv
+zone_state.json
 .claude/
