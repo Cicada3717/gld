@@ -247,9 +247,13 @@ def run(ticker="GLD", capital=500.0):
             ema_f = ema(closes, PARAMS["ema_fast"])
             ema_s = ema(closes, PARAMS["ema_slow"])
 
-            # Today's bars for VWAP
+            # Today's bars for VWAP — count only from 9:30 AM ET so bar_num
+            # starts at 1 at equity open (GC=F trades 23/5; without this filter
+            # bar_num is already ~90+ by 9:30 AM, closing the entry window).
             today_str = now.strftime("%Y-%m-%d")
-            today_mask = df.index.strftime("%Y-%m-%d") == today_str
+            session_start = market_open.astimezone(ET)
+            today_mask = (df.index.strftime("%Y-%m-%d") == today_str) & \
+                         (df.index >= session_start)
             df_today = df[today_mask]
 
             if len(df_today) == 0:
