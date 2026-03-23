@@ -185,30 +185,30 @@ def run(ticker="GLD", capital=500.0):
         try:
             now = datetime.now(ET)
 
-            # Only run Mon-Fri
-            if now.weekday() >= 5:
-                time.sleep(60)
-                continue
-
-            market_open = now.replace(hour=9, minute=30, second=0, microsecond=0)
+            # Gold futures session: entry window 09:30-16:00 ET Mon-Fri
+            # (gap momentum still applies at equity open even on futures)
+            is_weekend = now.weekday() >= 5
+            market_open  = now.replace(hour=9, minute=30, second=0, microsecond=0)
             market_close = now.replace(hour=16, minute=0, second=0, microsecond=0)
 
-            # Before market
+            if is_weekend:
+                time.sleep(300)
+                continue
+
+            # Before session
             if now < market_open:
                 wait = (market_open - now).total_seconds()
                 if wait > 300:
-                    print(f"  Market opens in {wait/60:.0f}m — sleeping...")
+                    print(f"  Session opens in {wait/60:.0f}m — sleeping...")
                     time.sleep(min(wait - 60, 300))
                 else:
                     time.sleep(30)
                 continue
 
-            # After market
+            # After session — close any position, reset for next day
             if now > market_close:
-                # Force close if position open
                 if state["position"]:
                     _force_close(state, ticker, "EOD")
-                # Reset for tomorrow
                 if state["today"] == now.strftime("%Y-%m-%d"):
                     state["traded_today"] = False
                     state["today"] = None
@@ -217,7 +217,7 @@ def run(ticker="GLD", capital=500.0):
                 while next_open.weekday() >= 5:
                     next_open += timedelta(days=1)
                 wait = (next_open - now).total_seconds()
-                print(f"  Market closed. Next open: {next_open.strftime('%Y-%m-%d %H:%M ET')}")
+                print(f"  Session closed. Next: {next_open.strftime('%Y-%m-%d %H:%M ET')}")
                 time.sleep(min(wait, 3600))
                 continue
 

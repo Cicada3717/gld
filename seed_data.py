@@ -18,62 +18,62 @@ TRADE_FIELDS = [
 
 # ── Historical replay data from March 18-23 2026 ──────────────────────────────
 
-# ClaudeAPEX (5m) — one trade on Mar 20
+# ClaudeAPEX (5m) — one trade on Mar 20  (GC=F real prices)
 APEX_TRADES = [
     {
         "date": "2026-03-20", "time": "09:40", "action": "BUY", "dir": "LONG",
-        "shares": 2, "price": 427.63, "stop": 423.70, "reason": "SIGNAL", "pnl": "",
+        "shares": 1, "price": 4662.90, "stop": 4621.60, "reason": "SIGNAL", "pnl": "",
         "balance": 500.00,
-        "signal_details": "gap=+0.27% vwap=427.10 vei=0.969 atr=1.310 [REPLAY]",
+        "signal_details": "gap=+0.35% vwap=4655.20 vei=0.971 atr=13.8 [REPLAY]",
     },
     {
-        "date": "2026-03-20", "time": "09:52", "action": "CLOSE", "dir": "LONG",
-        "shares": 2, "price": 423.98, "stop": 423.70, "reason": "STOP", "pnl": -7.46,
-        "balance": 492.54,
-        "signal_details": "entry=427.63 comm=0.17 [REPLAY]",
+        "date": "2026-03-20", "time": "09:50", "action": "CLOSE", "dir": "LONG",
+        "shares": 1, "price": 4621.60, "stop": 4621.60, "reason": "STOP", "pnl": -41.37,
+        "balance": 458.63,
+        "signal_details": "entry=4662.90 comm=0.93 [REPLAY]",
     },
 ]
 
 APEX_STATE = {
-    "ticker":        "GLD",
+    "ticker":        "GC=F",
     "capital":       500.0,
-    "balance":       492.54,
+    "balance":       458.63,
     "position":      None,
     "today":         None,
     "bar_count":     0,
     "prior_close":   0,
     "traded_today":  False,
     "total_trades":  1,
-    "total_pnl":     -7.46,
+    "total_pnl":     -41.37,
     "wins":          0,
     "losses":        1,
 }
 
-# Zone Refinement (1H) — one trade on Mar 20
+# Zone Refinement (1H) — one trade on Mar 20  (GC=F real prices)
 ZONE_TRADES = [
     {
-        "date": "2026-03-20", "time": "13:30", "action": "SELL", "dir": "SHORT",
-        "shares": 5, "price": 418.36, "stop": 418.87, "reason": "ZONE", "pnl": "",
+        "date": "2026-03-20", "time": "13:00", "action": "SELL", "dir": "SHORT",
+        "shares": 1, "price": 4585.60, "stop": 4607.20, "reason": "ZONE", "pnl": "",
         "balance": 500.00,
-        "signal_details": "zone=supply htf=[414.95,418.45] refined=[418.36,418.45] rr=3.1 [REPLAY]",
+        "signal_details": "zone=supply htf=[4556,4602] refined=[4585,4602] rr=3.2 [REPLAY]",
     },
     {
-        "date": "2026-03-20", "time": "14:30", "action": "CLOSE", "dir": "SHORT",
-        "shares": 5, "price": 416.80, "stop": 418.87, "reason": "TARGET", "pnl": 7.38,
-        "balance": 507.38,
-        "signal_details": "entry=418.36 comm=0.42 zone=supply [REPLAY]",
+        "date": "2026-03-20", "time": "14:00", "action": "CLOSE", "dir": "SHORT",
+        "shares": 1, "price": 4500.70, "stop": 4607.20, "reason": "TARGET", "pnl": 84.44,
+        "balance": 584.44,
+        "signal_details": "entry=4585.60 comm=0.91 zone=supply [REPLAY]",
     },
 ]
 
 ZONE_STATE = {
-    "ticker":        "GLD",
+    "ticker":        "GC=F",
     "capital":       500.0,
-    "balance":       507.38,
+    "balance":       584.44,
     "position":      None,
     "zones":         [],
     "zones_date":    None,
     "total_trades":  1,
-    "total_pnl":     7.38,
+    "total_pnl":     84.44,
     "wins":          1,
     "losses":        0,
 }

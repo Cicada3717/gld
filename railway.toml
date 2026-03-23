@@ -2,6 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python seed_data.py && python paper_trader.py --capital 500 & python zone_paper_trader.py --capital 500 & streamlit run dashboard.py --server.port $PORT"
+startCommand = "python seed_data.py && python paper_trader.py --ticker GC=F --capital 500 & python zone_paper_trader.py --ticker GC=F --capital 500 & streamlit run dashboard.py --server.port $PORT"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

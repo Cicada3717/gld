@@ -270,37 +270,13 @@ def run(ticker="GLD", capital=500.0):
             now  = datetime.now(ET)
             date_str = now.strftime("%Y-%m-%d")
 
-            # Only Mon-Fri
-            if now.weekday() >= 5:
+            # Gold futures: Sun 18:00 ET → Fri 17:00 ET, daily break 17:00-18:00 ET
+            is_saturday   = now.weekday() == 5
+            is_sunday_pre = now.weekday() == 6 and now.hour < 18
+            is_daily_break = now.hour == 17   # 5-6 PM ET maintenance window
+
+            if is_saturday or is_sunday_pre or is_daily_break:
                 time.sleep(300)
-                continue
-
-            market_open  = now.replace(hour=9, minute=30, second=0, microsecond=0)
-            market_close = now.replace(hour=16, minute=30, second=0, microsecond=0)
-
-            # Before market
-            if now < market_open:
-                wait = (market_open - now).total_seconds()
-                if wait > 600:
-                    print(f"  Market opens in {wait/60:.0f}m — sleeping...")
-                    time.sleep(min(wait - 120, 600))
-                else:
-                    time.sleep(30)
-                continue
-
-            # After market
-            if now > market_close:
-                if state["position"]:
-                    df_tmp = _clean(yf.download(ticker, period="1d",
-                                                interval="1h", progress=False))
-                    if not df_tmp.empty:
-                        _close_position(state, float(df_tmp["Close"].iloc[-1]), "EOD")
-                next_open = market_open + timedelta(days=1)
-                while next_open.weekday() >= 5:
-                    next_open += timedelta(days=1)
-                wait = (next_open - now).total_seconds()
-                print(f"  Market closed. Next: {next_open.strftime('%Y-%m-%d %H:%M ET')}")
-                time.sleep(min(wait, 3600))
                 continue
 
             # ── Refresh zones daily ───────────────────────────────────
