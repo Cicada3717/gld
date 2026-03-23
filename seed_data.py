@@ -9,7 +9,7 @@ import json
 import os
 from pathlib import Path
 
-DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "D:/trdng"))
+DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 
 TRADE_FIELDS = [
     "date", "time", "action", "dir", "shares", "price",

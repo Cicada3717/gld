@@ -46,7 +46,7 @@ PARAMS = {
 }
 
 # Railway volume path (falls back to local for dev)
-DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "D:/trdng"))
+DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 TRADE_LOG = DATA_DIR / "paper_trades.csv"
 STATE_FILE = DATA_DIR / "paper_state.json"
 

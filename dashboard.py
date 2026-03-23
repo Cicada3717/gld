@@ -41,7 +41,7 @@ div[data-testid="stRadio"] label:has(input:checked) {
 </style>
 """, unsafe_allow_html=True)
 
-DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "D:/trdng"))
+DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 
 STRATEGIES = {
     "ClaudeAPEX v12  (5m)": {

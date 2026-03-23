@@ -42,7 +42,7 @@ PARAMS = {
     "commission":      0.0001,  # 0.01% each way
 }
 
-DATA_DIR   = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "D:/trdng"))
+DATA_DIR   = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 TRADE_LOG  = DATA_DIR / "zone_trades.csv"
 STATE_FILE = DATA_DIR / "zone_state.json"
 
