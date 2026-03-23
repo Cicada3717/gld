@@ -189,18 +189,19 @@ def render(cfg):
             if row["action"] in ("BUY", "SELL"):
                 entry_map[row["date"]] = row
             elif row["action"] == "CLOSE":
-                e        = entry_map.get(row["date"], {})
+                e        = entry_map.get(row["date"])
+                has_entry = e is not None
                 pnl_val  = row["pnl"]
-                ep       = e.get("price", "")
+                ep       = e["price"] if has_entry else ""
                 rows.append({
                     "Date":        row["date"],
-                    "Entry":       e.get("time", ""),
+                    "Entry":       e["time"]  if has_entry else "",
                     "Exit":        row["time"],
-                    "Dir":         e.get("dir", row.get("dir", "")),
-                    "Shares":      int(e.get("shares", row.get("shares", 0))),
+                    "Dir":         e["dir"]   if has_entry else row.get("dir", ""),
+                    "Shares":      int(e["shares"] if has_entry else row.get("shares", 0)),
                     "Entry $":     f"${float(ep):.3f}" if ep != "" else "—",
                     "Exit $":      f"${row['price']:.3f}",
-                    "Stop $":      f"${float(e.get('stop', 0)):.3f}" if e else "—",
+                    "Stop $":      f"${float(e['stop']):.3f}" if has_entry else "—",
                     "Net P&L":     f"${pnl_val:+,.2f}" if pd.notna(pnl_val) else "—",
                     "Balance":     f"${row['balance']:,.2f}",
                     "Reason":      row.get("reason", ""),
