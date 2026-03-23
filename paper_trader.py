@@ -32,7 +32,7 @@ ET = ZoneInfo("America/New_York")
 PARAMS = {
     "atr_short": 10,
     "atr_long": 50,
-    "vei_max": 1.08,
+    "vei_max": 1.25,
     "ema_fast": 9,
     "ema_slow": 21,
     "atr_period": 14,

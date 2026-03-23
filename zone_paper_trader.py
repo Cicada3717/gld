@@ -312,11 +312,19 @@ def run(ticker="GLD", capital=500.0):
                     time.sleep(60)
                     continue
 
-                # Preserve consumed status from prior zones
+                # Preserve consumed status from prior zones (max 7 days — zones reset after a week)
                 old_consumed = {}
                 for z in state.get("zones", []):
+                    if not z.get("consumed", False):
+                        continue
+                    consumed_date = z.get("consumed_date")
+                    if consumed_date:
+                        age = (datetime.now(ET).date() -
+                               datetime.fromisoformat(consumed_date).date()).days
+                        if age > 7:
+                            continue  # reset old consumed zones
                     key = (z["type"], round(z["htf_top"], 3), round(z["htf_bottom"], 3))
-                    old_consumed[key] = z.get("consumed", False)
+                    old_consumed[key] = True
 
                 new_zones = build_zones(df_1h)
                 for z in new_zones:
@@ -431,6 +439,7 @@ def run(ticker="GLD", capital=500.0):
                     }
                     state["traded_today"] = True
                     zone["consumed"] = True
+                    zone["consumed_date"] = date_str
                     save_state(state)
 
                     print(f"\n  *** LONG {qty}sh @ ${price:.3f} (demand zone) ***")
@@ -483,6 +492,7 @@ def run(ticker="GLD", capital=500.0):
                         "entry_time": now.strftime("%H:%M"),
                     }
                     zone["consumed"] = True
+                    zone["consumed_date"] = date_str
                     save_state(state)
 
                     print(f"\n  *** SHORT {qty}sh @ ${price:.3f} (supply zone) ***")
