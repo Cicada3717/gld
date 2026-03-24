@@ -396,7 +396,9 @@ def run(ticker="GLD", capital=500.0):
                         continue
                     target = _prior_high(highs, p["target_skip"], p["target_lookback"])
                     if target <= price:
-                        continue
+                        # At ATH no prior swing high exists above price — project
+                        # the minimum-R:R target forward instead of skipping.
+                        target = price + risk * p["min_rr"]
                     rr = (target - price) / risk
                     if rr < p["min_rr"]:
                         continue
@@ -450,7 +452,9 @@ def run(ticker="GLD", capital=500.0):
                         continue
                     target = _prior_low(lows, p["target_skip"], p["target_lookback"])
                     if target >= price:
-                        continue
+                        # At ATL no prior swing low exists below price — project
+                        # the minimum-R:R target forward instead of skipping.
+                        target = price - risk * p["min_rr"]
                     rr = (price - target) / risk
                     if rr < p["min_rr"]:
                         continue
