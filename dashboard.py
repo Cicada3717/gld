@@ -1,7 +1,6 @@
 """
-dashboard.py — Dual Strategy Dashboard
-ClaudeAPEX v12 (5m Gap Momentum) vs Zone Refinement (1H Supply/Demand)
-Toggle at the top to switch between them.
+dashboard.py -- GC=F Zone Refinement Dashboard
+Supply & Demand zone strategy on 1H bars, 24/5.
 """
 import json
 import os
@@ -13,7 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 st.set_page_config(
-    page_title="GLD Strategy Dashboard",
+    page_title="GC=F Zone Refinement Dashboard",
     page_icon="📈",
     layout="wide",
 )
@@ -30,45 +29,22 @@ body, .stApp { background-color: #0d1117; color: #e6edf3; }
 .metric-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
 .green { color: #3fb950; } .red { color: #f85149; } .grey { color: #8b949e; }
 hr { border-color: #21262d; }
-div[data-testid="stRadio"] > div { gap: 8px; }
-div[data-testid="stRadio"] label {
-    background: #161b22; border: 1px solid #30363d;
-    border-radius: 6px; padding: 6px 18px; cursor: pointer;
-}
-div[data-testid="stRadio"] label:has(input:checked) {
-    border-color: #3fb950; color: #3fb950;
-}
 </style>
 """, unsafe_allow_html=True)
 
 DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 
-STRATEGIES = {
-    "ClaudeAPEX v12  (5m)": {
-        "trade_log":  DATA_DIR / "paper_trades.csv",
-        "state_file": DATA_DIR / "paper_state.json",
-        "info": {
-            "name":      "ClaudeAPEX v12",
-            "asset":     "GC=F (Gold Futures)",
-            "timeframe": "5m bars",
-            "signal":    "Gap Momentum",
-            "filters":   "VEI regime + VWAP + EMA",
-            "session":   "09:30–16:00 ET Mon–Fri",
-            "leverage":  "5x",
-        },
-    },
-    "Zone Refinement  (1H)": {
-        "trade_log":  DATA_DIR / "zone_trades.csv",
-        "state_file": DATA_DIR / "zone_state.json",
-        "info": {
-            "name":      "Zone Refinement",
-            "asset":     "GC=F (Gold Futures)",
-            "timeframe": "1H bars",
-            "signal":    "Supply & Demand Zones",
-            "filters":   "4H HTF zones + 1H refinement + EMA BOS",
-            "session":   "24/5 (Sun 18:00 – Fri 17:00 ET)",
-            "leverage":  "5x",
-        },
+ZONE_CFG = {
+    "trade_log":  DATA_DIR / "zone_trades.csv",
+    "state_file": DATA_DIR / "zone_state.json",
+    "info": {
+        "name":      "Zone Refinement",
+        "asset":     "GC=F (Gold Futures)",
+        "timeframe": "1H bars",
+        "signal":    "Supply & Demand Zones",
+        "filters":   "4H HTF zones + 1H refinement + EMA BOS",
+        "session":   "24/5 (Sun 18:00 -- Fri 17:00 ET)",
+        "leverage":  "5x",
     },
 }
 
@@ -180,7 +156,7 @@ def render(cfg):
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("No closed trades yet — equity curve will appear after first close.")
+        st.info("No closed trades yet -- equity curve will appear after first close.")
 
     # ── Trade table ───────────────────────────────────────────────────────────
     st.subheader("All Trades")
@@ -201,10 +177,10 @@ def render(cfg):
                     "Exit":        row["time"],
                     "Dir":         e["dir"]   if has_entry else row.get("dir", ""),
                     "Shares":      int(e["shares"] if has_entry else row.get("shares", 0)),
-                    "Entry $":     f"${float(ep):.3f}" if ep != "" else "—",
+                    "Entry $":     f"${float(ep):.3f}" if ep != "" else "---",
                     "Exit $":      f"${row['price']:.3f}",
-                    "Stop $":      f"${float(e['stop']):.3f}" if has_entry else "—",
-                    "Net P&L":     f"${pnl_val:+,.2f}" if pd.notna(pnl_val) else "—",
+                    "Stop $":      f"${float(e['stop']):.3f}" if has_entry else "---",
+                    "Net P&L":     f"${pnl_val:+,.2f}" if pd.notna(pnl_val) else "---",
                     "Balance":     f"${row['balance']:,.2f}",
                     "Reason":      row.get("reason", ""),
                     "Result":      "WIN" if (pd.notna(pnl_val) and pnl_val > 0) else "LOSS",
@@ -261,17 +237,8 @@ def render(cfg):
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 
-st.title("GLD Paper Trading Dashboard")
+st.title("GC=F Zone Refinement Dashboard")
 st.caption(f"Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 st.markdown("---")
 
-choice = st.radio(
-    "Strategy",
-    list(STRATEGIES.keys()),
-    horizontal=True,
-    label_visibility="collapsed",
-)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-render(STRATEGIES[choice])
+render(ZONE_CFG)
