@@ -273,10 +273,12 @@ def run(ticker="GLD", capital=500.0):
                 if state["position"]:
                     _force_close(state, ticker, "NEW_DAY")
 
-                # Find prior close (last bar of previous day)
-                prev_mask = ~today_mask
-                if prev_mask.any():
-                    state["prior_close"] = df[prev_mask]["Close"].iloc[-1]
+                # Find prior close — last bar of the PREVIOUS calendar day.
+                # Must use a date-only mask (independent of session_start) so we
+                # get yesterday's actual closing price, not today's pre-session bar.
+                prev_day_mask = df.index.strftime("%Y-%m-%d") < today_str
+                if prev_day_mask.any():
+                    state["prior_close"] = df[prev_day_mask]["Close"].iloc[-1]
 
                 state["today"] = today_str
                 state["bar_count"] = 0
