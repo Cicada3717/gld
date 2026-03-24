@@ -26,9 +26,9 @@ START_DATE  = date(2026, 3, 18)
 DATA_DIR    = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 
 ZONE_P = dict(
-    strength_bars=3, strength_mult=1.7,
-    bos_ema=21, bos_slope_bars=5,
-    stop_buffer=0.003, target_lookback=120, target_skip=5,
+    strength_bars=3, strength_mult=1.5,
+    bos_ema=21, bos_slope_bars=3,
+    stop_buffer=0.001, target_lookback=60, target_skip=5,
     min_rr=3.0, risk_pct=0.02, leverage=5.0, commission=0.0001,
 )
 
@@ -108,8 +108,6 @@ def replay_zone(df1h, zones):
     trades    = []
     wins = losses = 0
     total_pnl = 0.0
-    last_stop_time = None  # 6-hour cooldown tracker
-
     replay_start = pd.Timestamp(START_DATE.strftime("%Y-%m-%d"))
     df_replay    = df1h[df1h.index >= replay_start].copy()
     zone_list    = [dict(z) for z in zones]  # mutable copy
@@ -161,15 +159,8 @@ def replay_zone(df1h, zones):
                 "pnl": round(net, 2), "balance": round(balance, 2),
                 "signal_details": f"entry={position['entry']:.3f} comm={comm:.2f} zone={position.get('zone_type','?')}",
             })
-            if reason == "STOP":
-                last_stop_time = dt
             position = None
             continue
-
-        # -- 6-hour cooldown after stop-out ------------------------------
-        if last_stop_time:
-            if (dt - last_stop_time) < timedelta(hours=3):
-                continue
 
         # -- Zone scan ---------------------------------------------------
         bull = _bos_bullish(closes, p["bos_ema"], p["bos_slope_bars"])

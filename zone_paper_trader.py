@@ -30,11 +30,11 @@ ET = ZoneInfo("America/New_York")
 
 PARAMS = {
     "strength_bars":   3,
-    "strength_mult":   1.7,
+    "strength_mult":   1.5,
     "bos_ema":         21,
-    "bos_slope_bars":  5,
-    "stop_buffer":     0.003,
-    "target_lookback": 120,
+    "bos_slope_bars":  3,
+    "stop_buffer":     0.001,
+    "target_lookback": 60,
     "target_skip":     5,
     "min_rr":          3.0,
     "risk_pct":        0.02,
@@ -212,8 +212,6 @@ def _close_position(state, price, reason):
     else:
         state["losses"] += 1
     state["position"] = None
-    if reason == "STOP":
-        state["last_stop_time"] = datetime.now(ET).isoformat()
 
     now = datetime.now(ET)
     tag = "WIN" if net_pnl > 0 else "LOSS"
@@ -261,7 +259,6 @@ def run(ticker="GLD", capital=500.0):
             "total_pnl":     0.0,
             "wins":          0,
             "losses":        0,
-            "last_stop_time": None,
         }
         save_state(state)
         print(f"  Starting fresh — ${capital:,.0f}")
@@ -363,15 +360,6 @@ def run(ticker="GLD", capital=500.0):
                 continue
 
             # ── Zone scan ─────────────────────────────────────────────
-            # 6-hour cooldown after a stop-out
-            last_stop = state.get("last_stop_time")
-            if last_stop:
-                cooldown_end = datetime.fromisoformat(last_stop) + timedelta(hours=3)
-                if now < cooldown_end:
-                    print(f"      Cooldown until {cooldown_end.strftime('%H:%M')}")
-                    time.sleep(120)
-                    continue
-
             p = PARAMS
             bull = _bos_bullish(closes, p["bos_ema"], p["bos_slope_bars"])
             bear = _bos_bearish(closes, p["bos_ema"], p["bos_slope_bars"])
@@ -385,9 +373,6 @@ def run(ticker="GLD", capital=500.0):
                 if not isinstance(formed, datetime):
                     formed = datetime.fromisoformat(str(formed))
                 if formed >= ts:
-                    continue
-                # Skip stale zones older than 3 days
-                if (ts - formed).total_seconds() > 7 * 86400:
                     continue
 
                 ztop = zone["htf_top"]
