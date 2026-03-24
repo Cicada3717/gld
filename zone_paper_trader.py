@@ -30,7 +30,7 @@ ET = ZoneInfo("America/New_York")
 
 PARAMS = {
     "strength_bars":   3,
-    "strength_mult":   2.0,
+    "strength_mult":   1.7,
     "bos_ema":         21,
     "bos_slope_bars":  5,
     "stop_buffer":     0.003,
@@ -366,7 +366,7 @@ def run(ticker="GLD", capital=500.0):
             # 6-hour cooldown after a stop-out
             last_stop = state.get("last_stop_time")
             if last_stop:
-                cooldown_end = datetime.fromisoformat(last_stop) + timedelta(hours=6)
+                cooldown_end = datetime.fromisoformat(last_stop) + timedelta(hours=3)
                 if now < cooldown_end:
                     print(f"      Cooldown until {cooldown_end.strftime('%H:%M')}")
                     time.sleep(120)
@@ -387,7 +387,7 @@ def run(ticker="GLD", capital=500.0):
                 if formed >= ts:
                     continue
                 # Skip stale zones older than 3 days
-                if (ts - formed).total_seconds() > 3 * 86400:
+                if (ts - formed).total_seconds() > 7 * 86400:
                     continue
 
                 ztop = zone["htf_top"]

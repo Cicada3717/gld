@@ -19,9 +19,10 @@ TRADE_FIELDS = [
 ]
 
 # -- Zone Refinement (1H) -- replay Mar 18-23 on real GC=F data ---------------
-# 2 closed trades: 2W / 0L  |  Net P&L: +$1,072.15
-# New params: strength_mult=2.0, bos_slope_bars=5, stop_buffer=0.003,
-#   target_lookback=120, zone_age_max=3d, stop_cooldown=6h
+# 4 closed trades: 2W / 2L  |  Net P&L: +$645.30
+# Params: strength_mult=1.7, bos_slope_bars=5, stop_buffer=0.003,
+#   target_lookback=120, zone_age_max=7d (live), stop_cooldown=3h
+# Win avg: +$508  |  Loss avg: -$186  |  W/L ratio: 2.73x
 
 ZONE_TRADES = [
     {"date": "2026-03-18", "time": "18:00", "action": "SELL",  "dir": "SHORT",
@@ -32,31 +33,47 @@ ZONE_TRADES = [
      "shares": 8, "price": 4769.795, "stop": 4859.535, "reason": "TARGET", "pnl": 530.75,
      "balance": 10530.75,
      "signal_details": "entry=4837.100 comm=7.69 zone=supply"},
-    {"date": "2026-03-22", "time": "18:00", "action": "SELL",  "dir": "SHORT",
-     "shares": 2, "price": 4498.10, "stop": 4588.625, "reason": "ZONE", "pnl": "",
+    {"date": "2026-03-20", "time": "02:00", "action": "BUY",   "dir": "LONG",
+     "shares": 2, "price": 4670.30, "stop": 4581.614, "reason": "ZONE", "pnl": "",
      "balance": 10530.75,
-     "signal_details": "zone=supply htf=[4488,4575] refined=[4488.500,4574.900] rr=3.0"},
-    {"date": "2026-03-23", "time": "02:00", "action": "CLOSE", "dir": "SHORT",
-     "shares": 2, "price": 4226.527, "stop": 4588.625, "reason": "TARGET", "pnl": 541.40,
-     "balance": 11072.15,
-     "signal_details": "entry=4498.100 comm=1.74 zone=supply"},
-    {"date": "2026-03-23", "time": "08:00", "action": "SELL",  "dir": "SHORT",
-     "shares": 3, "price": 4480.60, "stop": 4550.711, "reason": "ZONE", "pnl": "",
-     "balance": 11072.15,
-     "signal_details": "zone=supply htf=[4453,4537] refined=[4490.000,4537.100] rr=5.4"},
+     "signal_details": "zone=demand htf=[4595,4672] refined=[4595.400,4672.300] rr=5.2"},
+    {"date": "2026-03-20", "time": "10:00", "action": "CLOSE", "dir": "LONG",
+     "shares": 2, "price": 4581.614, "stop": 4581.614, "reason": "STOP", "pnl": -179.22,
+     "balance": 10351.53,
+     "signal_details": "entry=4670.300 comm=1.85 zone=demand"},
+    {"date": "2026-03-20", "time": "14:00", "action": "SELL",  "dir": "SHORT",
+     "shares": 3, "price": 4500.70, "stop": 4555.024, "reason": "ZONE", "pnl": "",
+     "balance": 10351.53,
+     "signal_details": "zone=supply htf=[4463,4541] refined=[4526.100,4541.400] rr=3.0"},
+    {"date": "2026-03-23", "time": "01:00", "action": "CLOSE", "dir": "SHORT",
+     "shares": 3, "price": 4337.728, "stop": 4555.024, "reason": "TARGET", "pnl": 486.26,
+     "balance": 10837.79,
+     "signal_details": "entry=4500.700 comm=2.65 zone=supply"},
+    {"date": "2026-03-23", "time": "02:00", "action": "SELL",  "dir": "SHORT",
+     "shares": 5, "price": 4225.10, "stop": 4262.750, "reason": "ZONE", "pnl": "",
+     "balance": 10837.79,
+     "signal_details": "zone=supply htf=[4224,4250] refined=[4234.200,4250.000] rr=3.0"},
+    {"date": "2026-03-23", "time": "06:00", "action": "CLOSE", "dir": "SHORT",
+     "shares": 5, "price": 4262.750, "stop": 4262.750, "reason": "STOP", "pnl": -192.49,
+     "balance": 10645.30,
+     "signal_details": "entry=4225.100 comm=4.24 zone=supply"},
+    {"date": "2026-03-23", "time": "09:00", "action": "SELL",  "dir": "SHORT",
+     "shares": 4, "price": 4457.60, "stop": 4510.090, "reason": "ZONE", "pnl": "",
+     "balance": 10645.30,
+     "signal_details": "zone=supply htf=[4454,4497] refined=[4479.500,4496.600] rr=6.8"},
 ]
 
 ZONE_STATE = {
     "ticker":        "GC=F",
     "capital":       10000.0,
-    "balance":       11072.15,
+    "balance":       10645.30,
     "position":      None,
     "zones":         [],
     "zones_date":    None,
-    "total_trades":  2,
-    "total_pnl":     1072.15,
+    "total_trades":  4,
+    "total_pnl":     645.30,
     "wins":          2,
-    "losses":        0,
+    "losses":        2,
 }
 
 

@@ -26,7 +26,7 @@ START_DATE  = date(2026, 3, 18)
 DATA_DIR    = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 
 ZONE_P = dict(
-    strength_bars=3, strength_mult=2.0,
+    strength_bars=3, strength_mult=1.7,
     bos_ema=21, bos_slope_bars=5,
     stop_buffer=0.003, target_lookback=120, target_skip=5,
     min_rr=3.0, risk_pct=0.02, leverage=5.0, commission=0.0001,
@@ -168,7 +168,7 @@ def replay_zone(df1h, zones):
 
         # -- 6-hour cooldown after stop-out ------------------------------
         if last_stop_time:
-            if (dt - last_stop_time) < timedelta(hours=6):
+            if (dt - last_stop_time) < timedelta(hours=3):
                 continue
 
         # -- Zone scan ---------------------------------------------------
@@ -184,10 +184,8 @@ def replay_zone(df1h, zones):
                 formed = datetime.fromisoformat(str(formed))
             if pd.Timestamp(formed) >= ts:
                 continue
-            # Skip stale zones older than 3 days
-            formed_dt = formed if isinstance(formed, datetime) else datetime.fromisoformat(str(formed))
-            if (dt - formed_dt).total_seconds() > 3 * 86400:
-                continue
+            # Note: no zone age filter in replay — zones are pre-computed once
+            # (live trader refreshes zones daily so age filter applies there)
 
             ztop = zone["htf_top"]
             zbot = zone["htf_bottom"]
