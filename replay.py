@@ -22,7 +22,7 @@ from zone_refinement_backtest import detect_zones, _clean
 
 # ── Config ────────────────────────────────────────────────────────────────────
 TICKER      = "GC=F"
-CAPITAL     = 5000.0
+CAPITAL     = 10000.0
 START_DATE  = date(2026, 3, 18)
 DATA_DIR    = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 
