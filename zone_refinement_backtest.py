@@ -201,7 +201,7 @@ def _clean(df):
 
 # ── Main backtest ──────────────────────────────────────────────────────────────
 
-def run_backtest(ticker, start_date, end_date, cash, two_step=False, args_plot=False):
+def run_backtest(ticker, start_date, end_date, cash, min_rr=3.0, two_step=False, args_plot=False):
     WARMUP_MONTHS = 6
 
     warmup_start = (
@@ -274,7 +274,7 @@ def run_backtest(ticker, start_date, end_date, cash, two_step=False, args_plot=F
         risk_pct=0.02,
         leverage=5.0,
         real_cash=cash,
-        min_rr=5.0,
+        min_rr=min_rr,
         trade_start=trade_start,
     )
 
@@ -371,6 +371,7 @@ if __name__ == '__main__':
     parser.add_argument('--start',     default='2025-01-01', help='Trade start YYYY-MM-DD')
     parser.add_argument('--end',       default='2026-03-01', help='End date   YYYY-MM-DD')
     parser.add_argument('--cash',      type=float, default=100_000.0)
+    parser.add_argument('--min-rr',    type=float, default=3.0,    help='Minimum R:R ratio')
     parser.add_argument('--two-step',  action='store_true',
                         help='Apply second refinement step (4H→1H→30M)')
     parser.add_argument('--plot',      action='store_true',  help='Save chart PNG')
@@ -381,6 +382,7 @@ if __name__ == '__main__':
         start_date = args.start,
         end_date   = args.end,
         cash       = args.cash,
+        min_rr     = args.min_rr,
         two_step   = args.two_step,
         args_plot  = args.plot,
     )
