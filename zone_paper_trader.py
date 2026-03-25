@@ -341,21 +341,56 @@ def run(ticker="GLD", capital=500.0):
             # ── Manage open position ──────────────────────────────────
             if state["position"]:
                 pos = state["position"]
+
+                # Trailing stop — activates once price moves 1R in profit,
+                # then trails 0.5R behind the best price seen.
+                initial_risk = pos.get("initial_risk", abs(pos["entry"] - pos["stop"]))
+                pos["initial_risk"] = initial_risk
+                trail_dist   = initial_risk * 0.5
+
+                if pos["dir"] == "LONG":
+                    best = pos.get("best_price", pos["entry"])
+                    if price > best:
+                        pos["best_price"] = price
+                        best = price
+                    # Activate trail once 1R in profit
+                    if best >= pos["entry"] + initial_risk:
+                        trail_stop = best - trail_dist
+                        if trail_stop > pos["stop"]:
+                            print(f"      Trail stop moved: ${pos['stop']:.3f} → ${trail_stop:.3f}")
+                            pos["stop"] = trail_stop
+                            save_state(state)
+                else:  # SHORT
+                    best = pos.get("best_price", pos["entry"])
+                    if price < best:
+                        pos["best_price"] = price
+                        best = price
+                    if best <= pos["entry"] - initial_risk:
+                        trail_stop = best + trail_dist
+                        if trail_stop < pos["stop"]:
+                            print(f"      Trail stop moved: ${pos['stop']:.3f} → ${trail_stop:.3f}")
+                            pos["stop"] = trail_stop
+                            save_state(state)
+
                 hit_stop   = (pos["dir"] == "LONG"  and price <= pos["stop"]) or \
                              (pos["dir"] == "SHORT" and price >= pos["stop"])
                 hit_target = (pos["dir"] == "LONG"  and price >= pos["target"]) or \
                              (pos["dir"] == "SHORT" and price <= pos["target"])
                 if hit_stop:
-                    _close_position(state, pos["stop"], "STOP")
+                    _close_position(state, pos["stop"], "TRAIL_STOP" if pos.get("best_price") else "STOP")
                 elif hit_target:
                     _close_position(state, pos["target"], "TARGET")
                 else:
                     unreal = ((price - pos["entry"]) * pos["shares"]
                               if pos["dir"] == "LONG"
                               else (pos["entry"] - price) * pos["shares"])
+                    trail_active = pos.get("best_price") is not None and (
+                        (pos["dir"] == "LONG"  and pos.get("best_price", pos["entry"]) >= pos["entry"] + initial_risk) or
+                        (pos["dir"] == "SHORT" and pos.get("best_price", pos["entry"]) <= pos["entry"] - initial_risk)
+                    )
                     print(f"      {pos['dir']} {pos['shares']}sh @ ${pos['entry']:.3f}  "
-                          f"Stop:${pos['stop']:.3f}  Tgt:${pos['target']:.3f}  "
-                          f"Unreal:${unreal:+.2f}")
+                          f"Stop:${pos['stop']:.3f}{'(T)' if trail_active else ''}  "
+                          f"Tgt:${pos['target']:.3f}  Unreal:${unreal:+.2f}")
                 time.sleep(120)
                 continue
 
