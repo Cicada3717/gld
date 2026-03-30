@@ -4,8 +4,9 @@ yfinance
 backtrader
 matplotlib
 ta
-ib_insync
 statsmodels
 scipy
 streamlit
 plotly
+requests
+optuna
