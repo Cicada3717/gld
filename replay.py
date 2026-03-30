@@ -253,9 +253,25 @@ def replay_zone(df1h, zones):
     print(f"  Zone Refine: {n} closed trades | W:{wins} L:{losses} | "
           f"P&L: ${total_pnl:+,.2f} | Balance: ${balance:,.2f}")
 
+    # Carry forward any open position so the live trader picks it up
+    live_pos = None
+    if position:
+        live_pos = {
+            "dir":        position["dir"],
+            "shares":     position["shares"],
+            "entry":      position["entry"],
+            "stop":       position["stop"],
+            "target":     position["target"],
+            "zone_type":  position.get("zone_type", "?"),
+            "initial_risk": abs(position["entry"] - position["stop"]),
+            "entry_time": trades[-1]["time"] if trades else "00:00",
+        }
+        print(f"  Open position carried forward: {live_pos['dir']} "
+              f"{live_pos['shares']}sh @ ${live_pos['entry']:.3f}")
+
     state = {
         "ticker": TICKER, "capital": CAPITAL, "balance": round(balance, 2),
-        "position": None, "zones": [], "zones_date": None,
+        "position": live_pos, "zones": [], "zones_date": None,
         "total_trades": n, "total_pnl": round(total_pnl, 2),
         "wins": wins, "losses": losses,
     }
