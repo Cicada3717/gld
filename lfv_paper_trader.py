@@ -32,27 +32,6 @@ DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).paren
 # ── Per-ticker config ─────────────────────────────────────────────────────────
 
 TICKER_CFG = {
-    "GLD": {
-        "params": {
-            "swing_n":         3,
-            "sweep_min_atr":   0.30,
-            "avwap_tolerance": 0.010,
-            "vp_lookback":     100,
-            "vp_buckets":      50,
-            "vah_val_pct":     0.80,
-            "lvn_ratio":       0.25,
-            "stop_atr_buffer": 1.25,
-            "min_rr":          3.0,
-            "be_after_r":      2.0,
-            "trail_after_r":   3.0,
-            "trail_atr":       0.75,
-            "risk_pct":        0.02,
-            "leverage":        5.0,
-            "commission":      0.0002,
-        },
-        "market_hours": True,   # Mon-Fri 09:30-16:00 ET
-        "eod_close":    True,
-    },
     "BTC-USD": {
         "params": {
             "swing_n":         8,

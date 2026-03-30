@@ -36,11 +36,11 @@ DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).paren
 ASSETS = {
     "GLD": {
         "label":     "GLD — Gold ETF",
-        "state":     DATA_DIR / "lfv_state.json",
-        "trades":    DATA_DIR / "lfv_trades.csv",
-        "timeframe": "5-min bars · Mon-Fri 09:30-16:00 ET",
-        "signal":    "Liquidity sweep + AVWAP + Volume Profile",
-        "params":    "swing_n=3  min_rr=3.0  stop_buf=1.25 ATR",
+        "state":     DATA_DIR / "zone_state.json",    # zone_paper_trader files (untouched)
+        "trades":    DATA_DIR / "zone_trades.csv",
+        "timeframe": "1H bars · Mon-Fri 09:30-16:00 ET",
+        "signal":    "Supply & Demand Zones (4H/1H refinement)",
+        "params":    "min_rr=3.0  trailing 0.5R",
     },
     "BTC-USD": {
         "label":     "BTC-USD — Bitcoin",
