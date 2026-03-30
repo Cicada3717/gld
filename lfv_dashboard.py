@@ -492,6 +492,13 @@ def build_snapshot(asset_key):
 
 
 def render_hero(snapshot):
+    open_pos = snapshot["open_pos"]
+    open_status = "Open trade" if open_pos else "No open trade"
+    open_sub = (
+        f"{open_pos.get('dir', '?')} at ${open_pos.get('entry', 0):,.3f}"
+        if open_pos
+        else "Watching for the next signal"
+    )
     st.markdown(
         f"""
 <div class="hero-shell">
@@ -511,6 +518,11 @@ def render_hero(snapshot):
         <div class="mini-label">Balance</div>
         <div class="mini-value">{format_money(snapshot["balance"])}</div>
         <div class="mini-sub">{format_signed_money(snapshot["total_pnl"])} total | win rate {snapshot["win_rate"]:.1f}%</div>
+      </div>
+      <div class="mini-panel">
+        <div class="mini-label">{open_status}</div>
+        <div class="mini-value">{"LIVE" if open_pos else "FLAT"}</div>
+        <div class="mini-sub">{open_sub}</div>
       </div>
     </div>
   </div>
