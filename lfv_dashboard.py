@@ -485,43 +485,26 @@ def build_snapshot(asset_key):
     }
 
 
-def render_hero(selected_view, snapshots):
-    total_balance = sum(item["balance"] for item in snapshots)
-    total_initial = sum(item["initial"] for item in snapshots)
-    total_pnl = total_balance - total_initial
-    total_trades = sum(item["n_trades"] for item in snapshots)
-    open_positions = sum(1 for item in snapshots if item["open_pos"])
-    live_assets = ", ".join(item["cfg"]["label"] for item in snapshots)
-    view_label = "Portfolio View" if selected_view == "Both" else snapshots[0]["cfg"]["label"]
-
+def render_hero(snapshot):
     st.markdown(
         f"""
 <div class="hero-shell">
   <div class="eyebrow">Live paper trading</div>
   <div class="hero-grid">
     <div>
-      <div class="hero-title">{view_label}</div>
-      <p class="hero-copy">
-        A cleaner command center for signal quality, active exposure and equity progression.
-        Both strategies stay wired to the same live state files while this layer focuses on
-        clarity, polish and fast decision scanning.
-      </p>
+      <div class="hero-title">LFV Strategy</div>
+      <p class="hero-copy">Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
     <div class="hero-stack">
       <div class="mini-panel">
-        <div class="mini-label">Live assets</div>
-        <div class="mini-value">{live_assets}</div>
-        <div class="mini-sub">Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+        <div class="mini-label">Balance</div>
+        <div class="mini-value">{format_money(snapshot["balance"])}</div>
+        <div class="mini-sub">{format_signed_money(snapshot["total_pnl"])}</div>
       </div>
       <div class="mini-panel">
-        <div class="mini-label">Combined balance</div>
-        <div class="mini-value">{format_money(total_balance)}</div>
-        <div class="mini-sub">{format_signed_money(total_pnl)} across {total_trades} closed trades</div>
-      </div>
-      <div class="mini-panel">
-        <div class="mini-label">Open exposure</div>
-        <div class="mini-value">{open_positions}</div>
-        <div class="mini-sub">Active positions currently being managed</div>
+        <div class="mini-label">Closed trades</div>
+        <div class="mini-value">{snapshot["n_trades"]}</div>
+        <div class="mini-sub">Win rate {snapshot["win_rate"]:.1f}%</div>
       </div>
     </div>
   </div>
@@ -776,21 +759,16 @@ Parameters: {cfg['params']}
 
 selected_view = st.radio(
     "Asset View",
-    options=["Both", "GLD", "BTC-USD"],
+    options=["GLD", "BTC-USD"],
     horizontal=True,
     index=0,
     label_visibility="collapsed",
 )
 
-active_keys = ["GLD", "BTC-USD"] if selected_view == "Both" else [selected_view]
-snapshots = [build_snapshot(key) for key in active_keys]
+snapshot = build_snapshot(selected_view)
 
-render_hero(selected_view, snapshots)
+render_hero(snapshot)
 st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
-
-for idx, key in enumerate(active_keys):
-    render_asset(snapshots[idx], key)
-    if idx < len(active_keys) - 1:
-        st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
+render_asset(snapshot, selected_view)
 
 render_sidebar()
