@@ -45,6 +45,9 @@ PARAMS = {
 DATA_DIR   = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 TRADE_LOG  = DATA_DIR / "zone_trades.csv"
 STATE_FILE = DATA_DIR / "zone_state.json"
+YF_CACHE_DIR = DATA_DIR / ".yf_cache"
+YF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+yf.set_tz_cache_location(str(YF_CACHE_DIR))
 
 
 # ── Indicators ────────────────────────────────────────────────────────────────

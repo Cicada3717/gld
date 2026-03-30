@@ -28,6 +28,9 @@ ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
 
 DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
+YF_CACHE_DIR = DATA_DIR / ".yf_cache"
+YF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+yf.set_tz_cache_location(str(YF_CACHE_DIR))
 
 # ── Per-ticker config ─────────────────────────────────────────────────────────
 
