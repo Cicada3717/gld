@@ -1,5 +1,5 @@
 """
-lfv_dashboard.py - LFV Strategy Live Dashboard (GLD + BTC-USD)
+lfv_dashboard.py - Premium live dashboard for GLD and BTC-USD.
 """
 import json
 import os
@@ -19,16 +19,349 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-body, .stApp { background-color: #0d1117; color: #e6edf3; }
-.metric-card {
-    background: #161b22; border: 1px solid #30363d;
-    border-radius: 8px; padding: 18px 20px; text-align: center;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+    --bg: #f4f1ea;
+    --panel: rgba(255, 255, 255, 0.72);
+    --panel-strong: rgba(255, 255, 255, 0.88);
+    --stroke: rgba(23, 30, 47, 0.08);
+    --text: #171d2c;
+    --muted: #697487;
+    --green: #14835f;
+    --red: #c45d48;
+    --gold: #a47a1f;
+    --shadow: 0 22px 50px rgba(26, 37, 56, 0.10);
 }
-.metric-label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
-.metric-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
-.green { color: #3fb950; } .red { color: #f85149; } .grey { color: #8b949e; }
-hr { border-color: #21262d; }
-div[data-testid="stHorizontalBlock"] > div { gap: 0.5rem; }
+
+html, body, [class*="css"]  {
+    font-family: "DM Sans", "SF Pro Text", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+body, .stApp {
+    color: var(--text);
+    background:
+        radial-gradient(circle at top left, rgba(240, 213, 157, 0.45), transparent 28%),
+        radial-gradient(circle at top right, rgba(171, 198, 255, 0.35), transparent 24%),
+        linear-gradient(180deg, #fbfaf7 0%, #f2eee6 100%);
+}
+
+[data-testid="stAppViewContainer"] {
+    background: transparent;
+}
+
+[data-testid="stHeader"] {
+    background: rgba(255,255,255,0);
+}
+
+[data-testid="stSidebar"] {
+    background: rgba(255, 255, 255, 0.58);
+    border-left: 1px solid rgba(23, 30, 47, 0.08);
+    backdrop-filter: blur(22px);
+}
+
+[data-testid="stSidebar"] > div:first-child {
+    padding-top: 1.5rem;
+}
+
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    max-width: 1360px;
+}
+
+.hero-shell {
+    position: relative;
+    overflow: hidden;
+    padding: 1.75rem 1.75rem 1.55rem 1.75rem;
+    border-radius: 30px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58));
+    border: 1px solid rgba(255,255,255,0.55);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(24px);
+}
+
+.hero-shell:before {
+    content: "";
+    position: absolute;
+    inset: -20% auto auto -10%;
+    width: 280px;
+    height: 280px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(240, 211, 142, 0.70), transparent 68%);
+    pointer-events: none;
+}
+
+.hero-shell:after {
+    content: "";
+    position: absolute;
+    inset: auto -8% -28% auto;
+    width: 320px;
+    height: 320px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(151, 177, 239, 0.42), transparent 68%);
+    pointer-events: none;
+}
+
+.eyebrow {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    padding: 0.38rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(23, 30, 47, 0.08);
+    color: var(--muted);
+    font-size: 0.77rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.hero-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.8fr);
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.hero-title {
+    margin: 0.55rem 0 0.4rem 0;
+    font-family: "Instrument Serif", "Georgia", serif;
+    font-size: clamp(2.6rem, 5vw, 4.8rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+}
+
+.hero-copy {
+    max-width: 720px;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.7;
+    margin: 0;
+}
+
+.hero-stack {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.mini-panel {
+    padding: 1rem 1.1rem;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(23, 30, 47, 0.08);
+    backdrop-filter: blur(18px);
+}
+
+.mini-label {
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.mini-value {
+    margin-top: 0.25rem;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+}
+
+.mini-sub {
+    margin-top: 0.2rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.asset-shell {
+    margin-top: 1.25rem;
+    padding: 1.2rem;
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.60));
+    border: 1px solid rgba(255,255,255,0.55);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px);
+}
+
+.asset-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.asset-kicker {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.asset-title {
+    margin: 0.18rem 0 0.2rem 0;
+    font-size: clamp(1.7rem, 2vw, 2.4rem);
+    letter-spacing: -0.04em;
+}
+
+.asset-meta {
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+.badge-row {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.soft-badge {
+    padding: 0.48rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(23, 30, 47, 0.08);
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.metric-card {
+    padding: 1rem 1.05rem 1.05rem 1.05rem;
+    border-radius: 24px;
+    background: var(--panel);
+    border: 1px solid rgba(23, 30, 47, 0.07);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    backdrop-filter: blur(16px);
+}
+
+.metric-label {
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.metric-value {
+    margin-top: 0.4rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    color: var(--text);
+}
+
+.metric-sub {
+    margin-top: 0.18rem;
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.positive { color: var(--green); }
+.negative { color: var(--red); }
+.neutral { color: var(--text); }
+
+.panel-title {
+    margin: 0.2rem 0 0.85rem 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.position-banner {
+    margin: 1rem 0 1.15rem 0;
+    padding: 1rem 1.05rem;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.76), rgba(255,255,255,0.56));
+    border: 1px solid rgba(23, 30, 47, 0.08);
+    color: var(--text);
+}
+
+.position-title {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.position-copy {
+    margin-top: 0.38rem;
+    line-height: 1.6;
+    color: var(--text);
+}
+
+.empty-state {
+    padding: 1.1rem 1.15rem;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.58);
+    border: 1px solid rgba(23, 30, 47, 0.08);
+    color: var(--muted);
+}
+
+.divider-space {
+    height: 1rem;
+}
+
+.stRadio [role="radiogroup"] {
+    gap: 0.6rem;
+    padding: 0.45rem;
+    width: fit-content;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(23, 30, 47, 0.08);
+    box-shadow: var(--shadow);
+}
+
+.stRadio [role="radiogroup"] label {
+    min-width: 124px;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 180ms ease;
+}
+
+.stRadio [role="radiogroup"] label:has(input:checked) {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,240,234,0.98));
+    border-color: rgba(23, 30, 47, 0.08);
+    box-shadow: 0 10px 24px rgba(26, 37, 56, 0.10);
+}
+
+.stRadio [role="radiogroup"] p {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+div[data-testid="stHorizontalBlock"] > div {
+    gap: 0.8rem;
+}
+
+div[data-testid="stDataFrame"] {
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid rgba(23, 30, 47, 0.08);
+    background: rgba(255,255,255,0.70);
+}
+
+@media (max-width: 980px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+    .asset-header {
+        flex-direction: column;
+        align-items: start;
+    }
+    .stRadio [role="radiogroup"] {
+        width: 100%;
+    }
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -38,31 +371,67 @@ DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).paren
 
 ASSETS = {
     "GLD": {
-        "label": "GLD - Gold ETF",
+        "label": "GLD",
+        "name": "Gold ETF",
         "state": DATA_DIR / "zone_state.json",
         "trades": DATA_DIR / "zone_trades.csv",
-        "timeframe": "1H bars - Mon-Fri 09:30-16:00 ET",
-        "signal": "Supply & Demand Zones (4H/1H refinement)",
-        "params": "min_rr=3.0  trailing 0.5R",
+        "timeframe": "1H bars",
+        "schedule": "Mon-Fri 09:30-16:00 ET",
+        "signal": "Supply and Demand zone refinement",
+        "params": "min_rr=3.0  trailing=0.5R",
+        "accent": "#a47a1f",
     },
     "BTC-USD": {
-        "label": "BTC-USD - Bitcoin",
+        "label": "BTC-USD",
+        "name": "Bitcoin",
         "state": DATA_DIR / "lfv_state_BTCUSD.json",
         "trades": DATA_DIR / "lfv_trades_BTCUSD.csv",
-        "timeframe": "5-min bars - 24/7",
-        "signal": "Liquidity sweep + AVWAP + Volume Profile",
-        "params": "swing_n=8  min_rr=3.5  stop_buf=1.0 ATR",
+        "timeframe": "5-minute bars",
+        "schedule": "24/7 continuous scan",
+        "signal": "Liquidity sweep, AVWAP and volume profile",
+        "params": "swing_n=8  min_rr=3.5  stop_buf=1 ATR",
+        "accent": "#b46a3a",
     },
 }
 
 
-def card(col, label, value, color="grey"):
+def format_money(value):
+    if value is None or pd.isna(value):
+        return "---"
+    return f"${value:,.2f}"
+
+
+def format_signed_money(value):
+    if value is None or pd.isna(value):
+        return "---"
+    return f"${value:+,.2f}"
+
+
+def format_pct(value):
+    if value is None or pd.isna(value):
+        return "---"
+    return f"{value:+.2f}%"
+
+
+def tone_class(value, positive_threshold=0):
+    if value is None or pd.isna(value):
+        return "neutral"
+    if value > positive_threshold:
+        return "positive"
+    if value < positive_threshold:
+        return "negative"
+    return "neutral"
+
+
+def card(col, label, value, subtext="", tone="neutral"):
     col.markdown(
         f"""
-    <div class="metric-card">
-      <div class="metric-label">{label}</div>
-      <div class="metric-value {color}">{value}</div>
-    </div>""",
+<div class="metric-card">
+  <div class="metric-label">{label}</div>
+  <div class="metric-value {tone}">{value}</div>
+  <div class="metric-sub">{subtext}</div>
+</div>
+""",
         unsafe_allow_html=True,
     )
 
@@ -71,7 +440,7 @@ def load_csv(path):
     if not path.exists():
         return pd.DataFrame()
     df = pd.read_csv(path)
-    for col in ["pnl", "balance", "price"]:
+    for col in ["pnl", "balance", "price", "shares", "stop"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     return df
@@ -84,178 +453,326 @@ def load_state(path):
         return json.load(f)
 
 
-def render_asset(asset_key):
+def build_snapshot(asset_key):
     cfg = ASSETS[asset_key]
     df = load_csv(cfg["trades"])
     state = load_state(cfg["state"])
+    closed = df[df["action"] == "CLOSE"].copy() if not df.empty else pd.DataFrame()
 
-    if df.empty:
-        st.info(f"Paper trader running for {asset_key} - no trades yet.")
+    initial = float(state.get("capital", 10_000.0))
+    balance = float(state.get("balance", df["balance"].iloc[-1] if not df.empty and "balance" in df.columns else initial))
+    total_pnl = balance - initial
+    roi = (total_pnl / initial * 100) if initial else 0.0
+    n_trades = int(state.get("total_trades", len(closed)))
+    wins = int(state.get("wins", len(closed[closed["pnl"] > 0]) if not closed.empty else 0))
+    losses = int(state.get("losses", len(closed[closed["pnl"] <= 0]) if not closed.empty else 0))
+    win_rate = (wins / n_trades * 100) if n_trades else 0.0
+
+    return {
+        "cfg": cfg,
+        "df": df,
+        "state": state,
+        "closed": closed,
+        "initial": initial,
+        "balance": balance,
+        "total_pnl": total_pnl,
+        "roi": roi,
+        "n_trades": n_trades,
+        "wins": wins,
+        "losses": losses,
+        "win_rate": win_rate,
+        "open_pos": state.get("position"),
+    }
+
+
+def render_hero(selected_view, snapshots):
+    total_balance = sum(item["balance"] for item in snapshots)
+    total_initial = sum(item["initial"] for item in snapshots)
+    total_pnl = total_balance - total_initial
+    total_trades = sum(item["n_trades"] for item in snapshots)
+    open_positions = sum(1 for item in snapshots if item["open_pos"])
+    live_assets = ", ".join(item["cfg"]["label"] for item in snapshots)
+    view_label = "Portfolio View" if selected_view == "Both" else snapshots[0]["cfg"]["label"]
+
+    st.markdown(
+        f"""
+<div class="hero-shell">
+  <div class="eyebrow">Live paper trading</div>
+  <div class="hero-grid">
+    <div>
+      <div class="hero-title">{view_label}</div>
+      <p class="hero-copy">
+        A cleaner command center for signal quality, active exposure and equity progression.
+        Both strategies stay wired to the same live state files while this layer focuses on
+        clarity, polish and fast decision scanning.
+      </p>
+    </div>
+    <div class="hero-stack">
+      <div class="mini-panel">
+        <div class="mini-label">Live assets</div>
+        <div class="mini-value">{live_assets}</div>
+        <div class="mini-sub">Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+      </div>
+      <div class="mini-panel">
+        <div class="mini-label">Combined balance</div>
+        <div class="mini-value">{format_money(total_balance)}</div>
+        <div class="mini-sub">{format_signed_money(total_pnl)} across {total_trades} closed trades</div>
+      </div>
+      <div class="mini-panel">
+        <div class="mini-label">Open exposure</div>
+        <div class="mini-value">{open_positions}</div>
+        <div class="mini-sub">Active positions currently being managed</div>
+      </div>
+    </div>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_position_banner(open_pos):
+    phase_names = {1: "Hard stop", 2: "Breakeven", 3: "Trailing"}
+    phase_str = phase_names.get(open_pos.get("phase", 1), "?")
+    st.markdown(
+        f"""
+<div class="position-banner">
+  <div class="position-title">Open position</div>
+  <div class="position-copy">
+    {open_pos.get('dir', '?')} {open_pos.get('shares', '?')} units at ${open_pos.get('entry', 0):,.3f}
+    with stop ${open_pos.get('stop', 0):,.3f} in {phase_str} mode.<br>
+    Entered {open_pos.get('entry_time', '?')} | Swept {open_pos.get('swept_lvl', 0):,.3f}
+    | AVWAP {open_pos.get('avwap', 0):,.3f} | POC {open_pos.get('poc', 0):,.3f}
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_equity_curve(snapshot):
+    closed = snapshot["closed"]
+    st.markdown('<div class="panel-title">Equity Curve</div>', unsafe_allow_html=True)
+    if closed.empty or "balance" not in closed.columns:
+        st.markdown(
+            '<div class="empty-state">Equity will appear after the first closed trade.</div>',
+            unsafe_allow_html=True,
+        )
         return
 
-    closed = df[df["action"] == "CLOSE"].copy()
+    eq = closed.copy()
+    eq["dt"] = pd.to_datetime(eq["date"].astype(str) + " " + eq["time"].astype(str), errors="coerce")
+    eq = eq.dropna(subset=["dt"]).sort_values("dt")
 
-    initial = state.get("capital", 10_000.0)
-    balance = state.get("balance", df["balance"].iloc[-1] if not df.empty else initial)
-    total_pnl = balance - initial
-    roi = total_pnl / initial * 100
-    n_trades = state.get("total_trades", len(closed))
-    wins = state.get("wins", len(closed[closed["pnl"] > 0]) if not closed.empty else 0)
-    losses = state.get("losses", len(closed[closed["pnl"] <= 0]) if not closed.empty else 0)
-    win_rate = wins / n_trades * 100 if n_trades else 0
-    open_pos = state.get("position")
-
-    pnl_color = "green" if total_pnl >= 0 else "red"
-    wr_color = "green" if win_rate >= 50 else "red"
-
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    card(c1, "Balance", f"${balance:,.2f}", pnl_color)
-    card(c2, "Net P&L", f"${total_pnl:+,.2f}", pnl_color)
-    card(c3, "ROI", f"{roi:+.2f}%", pnl_color)
-    card(c4, "Trades", str(n_trades), "grey")
-    card(c5, "Win Rate", f"{win_rate:.1f}%", wr_color)
-    card(c6, "W / L", f"{wins} / {losses}", "grey")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    if open_pos:
-        phase_names = {1: "Hard stop", 2: "Breakeven", 3: "Trailing"}
-        phase_str = phase_names.get(open_pos.get("phase", 1), "?")
-        st.info(
-            f"Open {open_pos.get('dir', '?')} - "
-            f"{open_pos.get('shares', '?')} units @ ${open_pos.get('entry', 0):,.3f}  |  "
-            f"Stop: ${open_pos.get('stop', 0):,.3f} [{phase_str}]  |  "
-            f"Entered: {open_pos.get('entry_time', '?')}  |  "
-            f"Swept: {open_pos.get('swept_lvl', 0):,.3f}  "
-            f"AVWAP: {open_pos.get('avwap', 0):,.3f}  "
-            f"POC: {open_pos.get('poc', 0):,.3f}"
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=eq["dt"],
+            y=eq["balance"],
+            mode="lines+markers",
+            line=dict(color="#1f6f5d", width=3),
+            marker=dict(
+                size=8,
+                color=["#1f8c69" if p > 0 else "#c45d48" for p in eq["pnl"].fillna(0)],
+                line=dict(width=1, color="rgba(255,255,255,0.75)"),
+            ),
+            fill="tozeroy",
+            fillcolor="rgba(31, 111, 93, 0.08)",
+            hovertemplate="<b>%{x}</b><br>Balance %{y:$,.2f}<extra></extra>",
         )
+    )
+    fig.add_hline(
+        y=snapshot["initial"],
+        line_dash="dot",
+        line_color="rgba(105,116,135,0.8)",
+        annotation_text=f"Start {format_money(snapshot['initial'])}",
+        annotation_position="top left",
+    )
+    fig.update_layout(
+        height=320,
+        margin=dict(l=8, r=8, t=8, b=8),
+        paper_bgcolor="rgba(255,255,255,0.0)",
+        plot_bgcolor="rgba(255,255,255,0.0)",
+        xaxis=dict(
+            title="",
+            showgrid=True,
+            gridcolor="rgba(23,30,47,0.08)",
+            zeroline=False,
+            color="#5d6778",
+        ),
+        yaxis=dict(
+            title="",
+            showgrid=True,
+            gridcolor="rgba(23,30,47,0.08)",
+            zeroline=False,
+            tickprefix="$",
+            color="#5d6778",
+        ),
+        font=dict(color="#171d2c", family="DM Sans, sans-serif"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("Equity Curve")
-    if not closed.empty and "balance" in closed.columns:
-        eq = closed.copy()
-        eq["dt"] = pd.to_datetime(
-            eq["date"].astype(str) + " " + eq["time"].astype(str), errors="coerce"
-        )
-        eq = eq.dropna(subset=["dt"]).sort_values("dt")
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=eq["dt"],
-                y=eq["balance"],
-                mode="lines+markers",
-                line=dict(color="#3fb950", width=2),
-                marker=dict(
-                    color=["#3fb950" if p > 0 else "#f85149" for p in eq["pnl"].fillna(0)],
-                    size=8,
-                ),
-                hovertemplate="<b>%{x}</b><br>Balance: $%{y:,.2f}<extra></extra>",
+
+def build_trade_table(df):
+    rows = []
+    entry_map = {}
+    for _, row in df.iterrows():
+        if row["action"] in ("BUY", "SELL"):
+            entry_map[row["date"] + row["time"]] = row
+        elif row["action"] == "CLOSE":
+            entry = None
+            for key, value in reversed(list(entry_map.items())):
+                if key[:10] == row["date"]:
+                    entry = value
+                    break
+            pnl_val = row.get("pnl")
+            entry_price = entry["price"] if entry is not None else None
+            rows.append(
+                {
+                    "Date": row["date"],
+                    "Entry": entry["time"] if entry is not None else "",
+                    "Exit": row["time"],
+                    "Dir": entry["dir"] if entry is not None else row.get("dir", ""),
+                    "Units": int(entry["shares"] if entry is not None else row.get("shares", 0) or 0),
+                    "Entry $": f"${float(entry_price):,.3f}" if entry_price is not None and pd.notna(entry_price) else "---",
+                    "Exit $": f"${row['price']:,.3f}" if pd.notna(row.get("price")) else "---",
+                    "Stop $": f"${float(entry['stop']):,.3f}" if entry is not None and pd.notna(entry.get("stop")) else "---",
+                    "Net P&L": f"${pnl_val:+,.2f}" if pd.notna(pnl_val) else "---",
+                    "Balance": f"${row['balance']:,.2f}" if pd.notna(row.get("balance")) else "---",
+                    "Reason": row.get("reason", ""),
+                    "Result": "WIN" if (pd.notna(pnl_val) and pnl_val > 0) else "LOSS",
+                }
             )
-        )
-        fig.add_hline(
-            y=initial,
-            line_dash="dot",
-            line_color="#8b949e",
-            annotation_text=f"Start ${initial:,.0f}",
-        )
-        fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#0d1117",
-            plot_bgcolor="#0d1117",
-            height=300,
-            margin=dict(l=0, r=0, t=20, b=0),
-            xaxis=dict(gridcolor="#21262d"),
-            yaxis=dict(gridcolor="#21262d", tickprefix="$"),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("Equity curve will appear after the first closed trade.")
+    return pd.DataFrame(rows[::-1])
 
-    st.subheader("Closed Trades")
-    if not closed.empty:
-        rows = []
-        entry_map = {}
-        for _, row in df.iterrows():
-            if row["action"] in ("BUY", "SELL"):
-                entry_map[row["date"] + row["time"]] = row
-            elif row["action"] == "CLOSE":
-                entry = None
-                for key, value in reversed(list(entry_map.items())):
-                    if key[:10] == row["date"]:
-                        entry = value
-                        break
-                pnl_val = row["pnl"]
-                entry_price = entry["price"] if entry is not None else ""
-                rows.append(
-                    {
-                        "Date": row["date"],
-                        "Entry": entry["time"] if entry is not None else "",
-                        "Exit": row["time"],
-                        "Dir": entry["dir"] if entry is not None else row.get("dir", ""),
-                        "Units": int(entry["shares"] if entry is not None else row.get("shares", 0)),
-                        "Entry $": f"${float(entry_price):,.3f}" if entry_price != "" else "---",
-                        "Exit $": f"${row['price']:,.3f}",
-                        "Stop $": f"${float(entry['stop']):,.3f}" if entry is not None else "---",
-                        "Net P&L": f"${pnl_val:+,.2f}" if pd.notna(pnl_val) else "---",
-                        "Balance": f"${row['balance']:,.2f}",
-                        "Reason": row.get("reason", ""),
-                        "Result": "WIN" if (pd.notna(pnl_val) and pnl_val > 0) else "LOSS",
-                    }
-                )
 
-        table = pd.DataFrame(rows[::-1])
+def render_trade_table(snapshot):
+    closed = snapshot["closed"]
+    st.markdown('<div class="panel-title">Closed Trades</div>', unsafe_allow_html=True)
+    if closed.empty:
+        st.markdown(
+            '<div class="empty-state">No closed trades yet. The table will populate after the first completed position.</div>',
+            unsafe_allow_html=True,
+        )
+        return
 
-        def _color_result(val):
-            if "WIN" in str(val):
-                return "color:#3fb950;font-weight:bold"
-            if "LOSS" in str(val):
-                return "color:#f85149;font-weight:bold"
+    table = build_trade_table(snapshot["df"])
+
+    def color_result(val):
+        if "WIN" in str(val):
+            return "color:#14835f;font-weight:700"
+        if "LOSS" in str(val):
+            return "color:#c45d48;font-weight:700"
+        return ""
+
+    def color_pnl(val):
+        try:
+            parsed = float(str(val).replace("$", "").replace(",", "").replace("+", ""))
+            return "color:#14835f" if parsed > 0 else "color:#c45d48"
+        except Exception:
             return ""
 
-        def _color_pnl(val):
-            try:
-                parsed = float(str(val).replace("$", "").replace(",", "").replace("+", ""))
-                return "color:#3fb950" if parsed > 0 else "color:#f85149"
-            except Exception:
-                return ""
+    styled = table.style.applymap(color_result, subset=["Result"]).applymap(color_pnl, subset=["Net P&L"])
+    st.dataframe(styled, use_container_width=True, height=360)
 
-        styled = (
-            table.style.applymap(_color_result, subset=["Result"])
-            .applymap(_color_pnl, subset=["Net P&L"])
+
+def render_daily_pnl(snapshot):
+    closed = snapshot["closed"]
+    st.markdown('<div class="panel-title">Daily P&amp;L</div>', unsafe_allow_html=True)
+    if closed.empty:
+        st.markdown(
+            '<div class="empty-state">Daily performance will appear after trades start closing.</div>',
+            unsafe_allow_html=True,
         )
-        st.dataframe(styled, use_container_width=True, height=400)
+        return
 
-        st.subheader("Daily P&L")
-        daily = closed.groupby("date")["pnl"].sum().reset_index()
-        colors = ["#3fb950" if v > 0 else "#f85149" for v in daily["pnl"]]
-        fig2 = go.Figure(
-            go.Bar(
-                x=daily["date"],
-                y=daily["pnl"],
-                marker_color=colors,
-                hovertemplate="<b>%{x}</b><br>P&L: $%{y:+,.2f}<extra></extra>",
+    daily = closed.groupby("date")["pnl"].sum().reset_index()
+    colors = ["#14835f" if v > 0 else "#c45d48" for v in daily["pnl"]]
+    fig = go.Figure(
+        go.Bar(
+            x=daily["date"],
+            y=daily["pnl"],
+            marker=dict(color=colors, line=dict(color="rgba(255,255,255,0.7)", width=1)),
+            hovertemplate="<b>%{x}</b><br>P&L %{y:$+,.2f}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        height=280,
+        margin=dict(l=8, r=8, t=8, b=8),
+        paper_bgcolor="rgba(255,255,255,0.0)",
+        plot_bgcolor="rgba(255,255,255,0.0)",
+        xaxis=dict(showgrid=False, color="#5d6778"),
+        yaxis=dict(showgrid=True, gridcolor="rgba(23,30,47,0.08)", tickprefix="$", color="#5d6778"),
+        font=dict(color="#171d2c", family="DM Sans, sans-serif"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def render_asset(snapshot, asset_key):
+    cfg = snapshot["cfg"]
+    st.markdown(
+        f"""
+<div class="asset-shell">
+  <div class="asset-header">
+    <div>
+      <div class="asset-kicker">{cfg['label']}</div>
+      <div class="asset-title">{cfg['name']}</div>
+      <div class="asset-meta">{cfg['signal']}</div>
+    </div>
+    <div class="badge-row">
+      <div class="soft-badge">{cfg['timeframe']}</div>
+      <div class="soft-badge">{cfg['schedule']}</div>
+      <div class="soft-badge">{cfg['params']}</div>
+    </div>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    card(c1, "Balance", format_money(snapshot["balance"]), "Live marked balance", tone_class(snapshot["total_pnl"]))
+    card(c2, "Net P&L", format_signed_money(snapshot["total_pnl"]), "Versus starting capital", tone_class(snapshot["total_pnl"]))
+    card(c3, "ROI", format_pct(snapshot["roi"]), "Portfolio return", tone_class(snapshot["roi"]))
+    card(c4, "Trades", str(snapshot["n_trades"]), "Closed positions", "neutral")
+    card(c5, "Win rate", f"{snapshot['win_rate']:.1f}%", f"{snapshot['wins']} wins / {snapshot['losses']} losses", tone_class(snapshot["win_rate"], 50))
+    card(c6, "Status", "Active" if snapshot["open_pos"] else "Monitoring", "Position manager state", "neutral")
+
+    if snapshot["open_pos"]:
+        render_position_banner(snapshot["open_pos"])
+
+    left, right = st.columns([1.45, 1])
+    with left:
+        render_equity_curve(snapshot)
+    with right:
+        render_daily_pnl(snapshot)
+
+    render_trade_table(snapshot)
+    if asset_key == "GLD":
+        st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
+
+
+def render_sidebar():
+    with st.sidebar:
+        st.markdown("## Strategy Notes")
+        for cfg in ASSETS.values():
+            st.markdown(
+                f"""
+**{cfg['label']} - {cfg['name']}**  
+Timeframe: {cfg['timeframe']}  
+Schedule: {cfg['schedule']}  
+Signal: {cfg['signal']}  
+Parameters: {cfg['params']}
+"""
             )
-        )
-        fig2.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#0d1117",
-            plot_bgcolor="#0d1117",
-            height=240,
-            margin=dict(l=0, r=0, t=20, b=0),
-            xaxis=dict(gridcolor="#21262d"),
-            yaxis=dict(gridcolor="#21262d", tickprefix="$"),
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-    else:
-        st.info("No closed trades yet.")
+            st.markdown("---")
 
+        st.markdown(f"**Last refresh**  \n{datetime.now().strftime('%H:%M:%S')}")
+        if st.button("Refresh now", use_container_width=True):
+            st.rerun()
+        st.markdown("Auto-refresh every 60 seconds.")
+        st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
 
-st.title("LFV Strategy - Live Paper Trading")
-st.caption(
-    f"Liquidity + Fair Value (AVWAP) + Volume Profile  |  "
-    f"Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-)
-st.markdown("---")
 
 selected_view = st.radio(
     "Asset View",
@@ -265,31 +782,15 @@ selected_view = st.radio(
     label_visibility="collapsed",
 )
 
-if selected_view in ("Both", "GLD"):
-    st.subheader("GLD - Gold ETF")
-    render_asset("GLD")
+active_keys = ["GLD", "BTC-USD"] if selected_view == "Both" else [selected_view]
+snapshots = [build_snapshot(key) for key in active_keys]
 
-if selected_view == "Both":
-    st.markdown("---")
+render_hero(selected_view, snapshots)
+st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
 
-if selected_view in ("Both", "BTC-USD"):
-    st.subheader("BTC-USD - Bitcoin")
-    render_asset("BTC-USD")
+for idx, key in enumerate(active_keys):
+    render_asset(snapshots[idx], key)
+    if idx < len(active_keys) - 1:
+        st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
 
-with st.sidebar:
-    st.header("Strategy Info")
-
-    for _, cfg in ASSETS.items():
-        st.markdown(f"**{cfg['label']}**")
-        st.markdown(f"- Timeframe: {cfg['timeframe']}")
-        st.markdown(f"- Signal: {cfg['signal']}")
-        st.markdown(f"- Params: {cfg['params']}")
-        st.markdown("- Trail: BE@2R -> ATR trail@3R")
-        st.markdown("---")
-
-    st.markdown(f"**Last refresh**: {datetime.now().strftime('%H:%M:%S')}")
-    if st.button("Refresh Now"):
-        st.rerun()
-
-    st.markdown("**Auto-refresh every 60s**")
-    st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
+render_sidebar()
