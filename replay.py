@@ -135,6 +135,30 @@ def replay_zone(df1h, zones):
 
         # -- Manage open position ----------------------------------------
         if position:
+            # Trailing stop: activates at 1R profit, trails 0.5R behind best
+            initial_risk = position.get("initial_risk", abs(position["entry"] - position["stop"]))
+            position["initial_risk"] = initial_risk
+            trail_dist = initial_risk * 0.5
+
+            if position["dir"] == "LONG":
+                best = position.get("best_price", position["entry"])
+                if price > best:
+                    position["best_price"] = price
+                    best = price
+                if best >= position["entry"] + initial_risk:
+                    trail_stop = best - trail_dist
+                    if trail_stop > position["stop"]:
+                        position["stop"] = trail_stop
+            else:  # SHORT
+                best = position.get("best_price", position["entry"])
+                if price < best:
+                    position["best_price"] = price
+                    best = price
+                if best <= position["entry"] - initial_risk:
+                    trail_stop = best + trail_dist
+                    if trail_stop < position["stop"]:
+                        position["stop"] = trail_stop
+
             hit_stop   = (position["dir"] == "LONG"  and price <= position["stop"]) or \
                          (position["dir"] == "SHORT" and price >= position["stop"])
             hit_target = (position["dir"] == "LONG"  and price >= position["target"]) or \
@@ -143,7 +167,11 @@ def replay_zone(df1h, zones):
                 continue
 
             exit_px = position["stop"] if hit_stop else position["target"]
-            reason  = "STOP" if hit_stop else "TARGET"
+            is_trail = hit_stop and position.get("best_price") is not None and (
+                (position["dir"] == "LONG"  and position["best_price"] >= position["entry"] + initial_risk) or
+                (position["dir"] == "SHORT" and position["best_price"] <= position["entry"] - initial_risk)
+            )
+            reason  = "TRAIL_STOP" if is_trail else ("STOP" if hit_stop else "TARGET")
             pnl     = (exit_px - position["entry"]) * position["shares"] if position["dir"] == "LONG" \
                       else (position["entry"] - exit_px) * position["shares"]
             comm    = (position["entry"] + exit_px) * position["shares"] * p["commission"]
