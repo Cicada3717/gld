@@ -467,6 +467,9 @@ def build_snapshot(asset_key):
     wins = int(state.get("wins", len(closed[closed["pnl"] > 0]) if not closed.empty else 0))
     losses = int(state.get("losses", len(closed[closed["pnl"] <= 0]) if not closed.empty else 0))
     win_rate = (wins / n_trades * 100) if n_trades else 0.0
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_closed = closed[closed["date"].astype(str) == today_str].copy() if not closed.empty else pd.DataFrame()
+    today_pnl = float(today_closed["pnl"].sum()) if not today_closed.empty else 0.0
 
     return {
         "cfg": cfg,
@@ -481,6 +484,9 @@ def build_snapshot(asset_key):
         "wins": wins,
         "losses": losses,
         "win_rate": win_rate,
+        "today_pnl": today_pnl,
+        "today_trades": len(today_closed),
+        "today_date": today_str,
         "open_pos": state.get("position"),
     }
 
@@ -497,14 +503,14 @@ def render_hero(snapshot):
     </div>
     <div class="hero-stack">
       <div class="mini-panel">
-        <div class="mini-label">Balance</div>
-        <div class="mini-value">{format_money(snapshot["balance"])}</div>
-        <div class="mini-sub">{format_signed_money(snapshot["total_pnl"])}</div>
+        <div class="mini-label">Today's P&amp;L</div>
+        <div class="mini-value">{format_signed_money(snapshot["today_pnl"])}</div>
+        <div class="mini-sub">{snapshot["today_trades"]} closed trades on {snapshot["today_date"]}</div>
       </div>
       <div class="mini-panel">
-        <div class="mini-label">Closed trades</div>
-        <div class="mini-value">{snapshot["n_trades"]}</div>
-        <div class="mini-sub">Win rate {snapshot["win_rate"]:.1f}%</div>
+        <div class="mini-label">Balance</div>
+        <div class="mini-value">{format_money(snapshot["balance"])}</div>
+        <div class="mini-sub">{format_signed_money(snapshot["total_pnl"])} total | win rate {snapshot["win_rate"]:.1f}%</div>
       </div>
     </div>
   </div>
