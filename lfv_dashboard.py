@@ -413,6 +413,14 @@ def format_pct(value):
     return f"{value:+.2f}%"
 
 
+def format_units(value):
+    if value is None or pd.isna(value):
+        return "---"
+    if abs(float(value) - round(float(value))) < 1e-9:
+        return f"{int(round(float(value)))}"
+    return f"{float(value):,.6f}"
+
+
 def tone_class(value, positive_threshold=0):
     if value is None or pd.isna(value):
         return "neutral"
@@ -495,7 +503,7 @@ def render_hero(snapshot):
     open_pos = snapshot["open_pos"]
     open_status = "Open trade" if open_pos else "No open trade"
     open_sub = (
-        f"{open_pos.get('dir', '?')} at ${open_pos.get('entry', 0):,.3f}"
+        f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} units at ${open_pos.get('entry', 0):,.3f}"
         if open_pos
         else "Watching for the next signal"
     )
@@ -540,7 +548,7 @@ def render_position_banner(open_pos):
 <div class="position-banner">
   <div class="position-title">Open position</div>
   <div class="position-copy">
-    {open_pos.get('dir', '?')} {open_pos.get('shares', '?')} units at ${open_pos.get('entry', 0):,.3f}
+    {open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} units at ${open_pos.get('entry', 0):,.3f}
     with stop ${open_pos.get('stop', 0):,.3f} in {phase_str} mode.<br>
     Entered {open_pos.get('entry_time', '?')} | Swept {open_pos.get('swept_lvl', 0):,.3f}
     | AVWAP {open_pos.get('avwap', 0):,.3f} | POC {open_pos.get('poc', 0):,.3f}
@@ -634,7 +642,7 @@ def build_trade_table(df):
                     "Entry": entry["time"] if entry is not None else "",
                     "Exit": row["time"],
                     "Dir": entry["dir"] if entry is not None else row.get("dir", ""),
-                    "Units": int(entry["shares"] if entry is not None else row.get("shares", 0) or 0),
+                    "Units": format_units(entry["shares"] if entry is not None else row.get("shares", 0)),
                     "Entry $": f"${float(entry_price):,.3f}" if entry_price is not None and pd.notna(entry_price) else "---",
                     "Exit $": f"${row['price']:,.3f}" if pd.notna(row.get("price")) else "---",
                     "Stop $": f"${float(entry['stop']):,.3f}" if entry is not None and pd.notna(entry.get("stop")) else "---",

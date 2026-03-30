@@ -53,6 +53,7 @@ TICKER_CFG = {
             "leverage":        5.0,
             "commission":      0.0002,
         },
+        "fractional_size": True,
         "market_hours": False,  # 24/7
         "eod_close":    False,
     },
@@ -121,6 +122,10 @@ def _current_atr(df, period=14):
 def _qty(balance, price, risk, params):
     if risk <= 0 or price <= 0:
         return 0
+    if params.get("fractional_size"):
+        risk_shares = balance * params["risk_pct"] / risk
+        lev_shares = balance * params["leverage"] / price
+        return round(min(risk_shares, lev_shares), 6)
     risk_shares = int(balance * params["risk_pct"] / risk)
     lev_shares  = int(balance * params["leverage"] / price)
     return min(risk_shares, lev_shares)
@@ -192,7 +197,7 @@ def _should_eod_close_gld():
 # ── Process one ticker ────────────────────────────────────────────────────────
 
 def process_ticker(ticker, state, last_signal_bar, cfg):
-    params = cfg["params"]
+    params = {**cfg["params"], "fractional_size": cfg.get("fractional_size", False)}
     now    = datetime.now(ET)
 
     # Market hours gate (GLD only)
