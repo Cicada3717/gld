@@ -78,11 +78,16 @@ TICKER_CFG = {
 
 
 def _state_file(ticker):
+    # GLD keeps original filenames so existing data is preserved
+    if ticker == "GLD":
+        return DATA_DIR / "lfv_state.json"
     safe = ticker.replace("=", "").replace("-", "")
     return DATA_DIR / f"lfv_state_{safe}.json"
 
 
 def _trade_file(ticker):
+    if ticker == "GLD":
+        return DATA_DIR / "lfv_trades.csv"
     safe = ticker.replace("=", "").replace("-", "")
     return DATA_DIR / f"lfv_trades_{safe}.csv"
 

@@ -36,8 +36,8 @@ DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).paren
 ASSETS = {
     "GLD": {
         "label":     "GLD — Gold ETF",
-        "state":     DATA_DIR / "lfv_state_GLD.json",
-        "trades":    DATA_DIR / "lfv_trades_GLD.csv",
+        "state":     DATA_DIR / "lfv_state.json",
+        "trades":    DATA_DIR / "lfv_trades.csv",
         "timeframe": "5-min bars · Mon-Fri 09:30-16:00 ET",
         "signal":    "Liquidity sweep + AVWAP + Volume Profile",
         "params":    "swing_n=3  min_rr=3.0  stop_buf=1.25 ATR",
