@@ -681,7 +681,10 @@ def render_trade_table(snapshot):
         except Exception:
             return ""
 
-    styled = table.style.applymap(color_result, subset=["Result"]).applymap(color_pnl, subset=["Net P&L"])
+    try:
+        styled = table.style.map(color_result, subset=["Result"]).map(color_pnl, subset=["Net P&L"])
+    except AttributeError:
+        styled = table.style.applymap(color_result, subset=["Result"]).applymap(color_pnl, subset=["Net P&L"])
     st.dataframe(styled, use_container_width=True, height=360)
 
 

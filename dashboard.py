@@ -200,9 +200,14 @@ def render(cfg):
             except Exception:
                 return ""
 
-        styled = (tbl.style
-                  .applymap(_color_result, subset=["Result"])
-                  .applymap(_color_pnl,    subset=["Net P&L"]))
+        try:
+            styled = (tbl.style
+                      .map(_color_result, subset=["Result"])
+                      .map(_color_pnl,    subset=["Net P&L"]))
+        except AttributeError:
+            styled = (tbl.style
+                      .applymap(_color_result, subset=["Result"])
+                      .applymap(_color_pnl,    subset=["Net P&L"]))
         st.dataframe(styled, use_container_width=True, height=420)
 
         # ── Daily P&L ─────────────────────────────────────────────────────────
