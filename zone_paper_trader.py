@@ -402,6 +402,9 @@ def run(ticker="GLD", capital=500.0):
             bull = _bos_bullish(closes, p["bos_ema"], p["bos_slope_bars"])
             bear = _bos_bearish(closes, p["bos_ema"], p["bos_slope_bars"])
 
+            # 20-bar trend filter — only trade WITH momentum
+            trend_20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
+
             entered = False
             for zone in state["zones"]:
                 if zone.get("consumed"):
@@ -428,6 +431,8 @@ def run(ticker="GLD", capital=500.0):
                         continue   # hasn't touched refined zone
                     if price < rbot:
                         continue   # blown through
+                    if trend_20 < 0:
+                        continue   # trend filter: skip LONG in downtrend
                     stop   = rbot * (1 - buf)
                     risk   = price - stop
                     if risk <= 0:
@@ -484,6 +489,8 @@ def run(ticker="GLD", capital=500.0):
                         continue
                     if price > rtop:
                         continue
+                    if trend_20 > 0:
+                        continue   # trend filter: skip SHORT in uptrend
                     stop   = rtop * (1 + buf)
                     risk   = stop - price
                     if risk <= 0:
