@@ -1,22 +1,11 @@
 {
   "ticker": "BTC-USD",
   "capital": 10000.0,
-  "balance": 10409.397546462935,
-  "position": {
-    "dir": "LONG",
-    "shares": 0.491105,
-    "entry": 67095.055,
-    "stop": 67095.055,
-    "init_risk": 407.24,
-    "phase": 2,
-    "entry_time": "2026-03-31 11:10",
-    "swept_lvl": 67084.062,
-    "poc": 66638.815,
-    "avwap": 67141.95
-  },
-  "total_trades": 2,
-  "total_pnl": 409.3975464629336,
-  "wins": 1,
+  "balance": 11076.39,
+  "position": null,
+  "total_trades": 3,
+  "total_pnl": 1076.39,
+  "wins": 2,
   "losses": 1,
   "last_processed_bar": "2026-03-31 08:20:00+00:00",
   "last_signal_bar": "2026-03-30 08:45:00+00:00"
