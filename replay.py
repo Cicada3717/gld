@@ -24,6 +24,9 @@ TICKER      = "GC=F"
 CAPITAL     = 10000.0
 START_DATE  = date(2026, 3, 18)
 DATA_DIR    = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
+YF_CACHE_DIR = DATA_DIR / ".yf_cache"
+YF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+yf.set_tz_cache_location(str(YF_CACHE_DIR))
 
 ZONE_P = dict(
     strength_bars=3, strength_mult=1.5,
@@ -506,6 +509,11 @@ if __name__ == "__main__":
                                start=start.strftime("%Y-%m-%d"),
                                end=end.strftime("%Y-%m-%d"),
                                interval="1h", progress=False))
+    if df1h.empty:
+        raise RuntimeError(
+            f"No 1H data returned for {TICKER}. "
+            "Check the ticker, date range, and yfinance cache/database permissions."
+        )
     df4h  = (df1h.resample("4h")
              .agg({"Open": "first", "High": "max", "Low": "min",
                    "Close": "last", "Volume": "sum"})

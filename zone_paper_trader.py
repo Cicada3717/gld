@@ -29,18 +29,22 @@ from zone_refinement_backtest import detect_zones, _clean
 ET = ZoneInfo("America/New_York")
 
 PARAMS = {
-    "strength_bars":   3,
-    "strength_mult":   1.5,
-    "bos_ema":         21,
-    "bos_slope_bars":  3,
-    "stop_buffer":     0.001,
-    "target_lookback": 60,
-    "target_skip":     5,
-    "min_rr":          3.0,
-    "risk_pct":        0.02,
-    "leverage":        5.0,
-    "commission":      0.0001,  # 0.01% each way
+    "strength_bars":      3,
+    "strength_mult":      1.5,
+    "bos_ema":            21,
+    "bos_slope_bars":     5,      # OPTIMIZED: 3 -> 5  (better EMA trend filter)
+    "stop_buffer":        0.001,
+    "target_lookback":    60,
+    "target_skip":        5,
+    "min_rr":             2.5,    # OPTIMIZED: 3.0 -> 2.5 (more qualifying zone entries)
+    "risk_pct":           0.02,   # 2% per trade (conservative; 2.5% = +356% but higher variance)
+    "trail_activation_r": 1.5,    # OPTIMIZED: 1.0R -> 1.5R (let trade breathe first)
+    "trail_distance_r":   0.3,    # OPTIMIZED: 0.5R -> 0.3R (tight trail locks profits fast)
+    "leverage":           5.0,
+    "commission":         0.0001,
 }
+
+SLIPPAGE = 0.50
 
 DATA_DIR   = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 TRADE_LOG  = DATA_DIR / "zone_trades.csv"
@@ -189,22 +193,26 @@ def log_trade(row):
 # ── Position management ───────────────────────────────────────────────────────
 
 def _qty(balance, price, risk):
-    if risk <= 0 or price <= 0:
+    # Include BOTH entry and exit slippage in worst-case risk per share
+    actual_risk = risk + 2 * SLIPPAGE
+    if actual_risk <= 0 or price <= 0:
         return 0
-    risk_shares = int(balance * PARAMS["risk_pct"] / risk)
+    risk_shares = int(balance * PARAMS["risk_pct"] / actual_risk)
     lev_shares  = int(balance * PARAMS["leverage"] / price)
     return min(risk_shares, lev_shares)
 
 
-def _close_position(state, price, reason):
+def _close_position(state, exit_price_raw, reason):
     pos = state["position"]
     if not pos:
         return
+    # Apply slippage on exit: LONG exit = sell at bid (lower), SHORT exit = buy at ask (higher)
+    exit_price = exit_price_raw - SLIPPAGE if pos["dir"] == "LONG" else exit_price_raw + SLIPPAGE
     if pos["dir"] == "LONG":
-        pnl = (price - pos["entry"]) * pos["shares"]
+        pnl = (exit_price - pos["entry"]) * pos["shares"]
     else:
-        pnl = (pos["entry"] - price) * pos["shares"]
-    comm    = (pos["entry"] * pos["shares"] + price * pos["shares"]) * PARAMS["commission"]
+        pnl = (pos["entry"] - exit_price) * pos["shares"]
+    comm    = (pos["entry"] * pos["shares"] + exit_price * pos["shares"]) * PARAMS["commission"]
     net_pnl = pnl - comm
 
     state["balance"]      += net_pnl
@@ -218,17 +226,17 @@ def _close_position(state, price, reason):
 
     now = datetime.now(ET)
     tag = "WIN" if net_pnl > 0 else "LOSS"
-    print(f"\n  *** CLOSE {pos['dir']} {pos['shares']}sh @ ${price:.3f} ({reason}) [{tag}] ***")
-    print(f"      Entry ${pos['entry']:.3f} → Exit ${price:.3f}  Net: ${net_pnl:+.2f}")
+    print(f"\n  *** CLOSE {pos['dir']} {pos['shares']}sh @ ${exit_price:.3f} (trigger:${exit_price_raw:.3f}, {reason}) [{tag}] ***")
+    print(f"      Entry ${pos['entry']:.3f} → Exit ${exit_price:.3f}  Net: ${net_pnl:+.2f}")
     print(f"      Balance: ${state['balance']:,.2f}")
 
     log_trade({
         "date": now.strftime("%Y-%m-%d"), "time": now.strftime("%H:%M"),
         "action": "CLOSE", "dir": pos["dir"], "shares": pos["shares"],
-        "price": round(price, 3), "stop": round(pos["stop"], 3),
+        "price": round(exit_price, 3), "stop": round(pos["stop"], 3),
         "reason": reason, "pnl": round(net_pnl, 2),
         "balance": round(state["balance"], 2),
-        "signal_details": f"entry={pos['entry']:.3f} comm={comm:.2f} zone={pos.get('zone_type','?')}",
+        "signal_details": f"entry={pos['entry']:.3f} trigger={exit_price_raw:.3f} comm={comm:.2f} zone={pos.get('zone_type','?')}",
     })
     save_state(state)
 
@@ -345,52 +353,52 @@ def run(ticker="GLD", capital=500.0):
             if state["position"]:
                 pos = state["position"]
 
-                # Trailing stop — activates once price moves 1R in profit,
-                # then trails 0.5R behind the best price seen.
-                initial_risk = pos.get("initial_risk", abs(pos["entry"] - pos["stop"]))
+                # Trailing stop — OPTIMIZED params from grid search:
+                # Activate at 1.5R profit (was 1.0R), trail by 0.3R (was 0.5R)
+                initial_risk   = pos.get("initial_risk", abs(pos["entry"] - pos["stop"]))
                 pos["initial_risk"] = initial_risk
-                trail_dist   = initial_risk * 0.5
+                trail_activate = initial_risk * PARAMS["trail_activation_r"]
+                trail_dist     = initial_risk * PARAMS["trail_distance_r"]
 
                 if pos["dir"] == "LONG":
                     best = pos.get("best_price", pos["entry"])
-                    if price > best:
-                        pos["best_price"] = price
-                        best = price
-                    # Activate trail once 1R in profit
-                    if best >= pos["entry"] + initial_risk:
+                    if high > best:
+                        pos["best_price"] = high
+                        best = high
+                    if best >= pos["entry"] + trail_activate:
                         trail_stop = best - trail_dist
                         if trail_stop > pos["stop"]:
-                            print(f"      Trail stop moved: ${pos['stop']:.3f} → ${trail_stop:.3f}")
+                            print(f"      Trail stop moved: ${pos['stop']:.3f} -> ${trail_stop:.3f}")
                             pos["stop"] = trail_stop
                             save_state(state)
                 else:  # SHORT
                     best = pos.get("best_price", pos["entry"])
-                    if price < best:
-                        pos["best_price"] = price
-                        best = price
-                    if best <= pos["entry"] - initial_risk:
+                    if low < best:
+                        pos["best_price"] = low
+                        best = low
+                    if best <= pos["entry"] - trail_activate:
                         trail_stop = best + trail_dist
                         if trail_stop < pos["stop"]:
-                            print(f"      Trail stop moved: ${pos['stop']:.3f} → ${trail_stop:.3f}")
+                            print(f"      Trail stop moved: ${pos['stop']:.3f} -> ${trail_stop:.3f}")
                             pos["stop"] = trail_stop
                             save_state(state)
 
-                hit_stop   = (pos["dir"] == "LONG"  and price <= pos["stop"]) or \
-                             (pos["dir"] == "SHORT" and price >= pos["stop"])
-                hit_target = (pos["dir"] == "LONG"  and price >= pos["target"]) or \
-                             (pos["dir"] == "SHORT" and price <= pos["target"])
+                hit_stop   = (pos["dir"] == "LONG"  and low  <= pos["stop"]) or \
+                             (pos["dir"] == "SHORT" and high >= pos["stop"])
+                hit_target = (pos["dir"] == "LONG"  and high >= pos["target"]) or \
+                             (pos["dir"] == "SHORT" and low  <= pos["target"])
+                trail_active = pos.get("best_price") is not None and (
+                    (pos["dir"] == "LONG"  and pos.get("best_price", pos["entry"]) >= pos["entry"] + trail_activate) or
+                    (pos["dir"] == "SHORT" and pos.get("best_price", pos["entry"]) <= pos["entry"] - trail_activate)
+                )
                 if hit_stop:
-                    _close_position(state, pos["stop"], "TRAIL_STOP" if pos.get("best_price") else "STOP")
+                    _close_position(state, pos["stop"], "TRAIL_STOP" if trail_active else "STOP")
                 elif hit_target:
                     _close_position(state, pos["target"], "TARGET")
                 else:
                     unreal = ((price - pos["entry"]) * pos["shares"]
                               if pos["dir"] == "LONG"
                               else (pos["entry"] - price) * pos["shares"])
-                    trail_active = pos.get("best_price") is not None and (
-                        (pos["dir"] == "LONG"  and pos.get("best_price", pos["entry"]) >= pos["entry"] + initial_risk) or
-                        (pos["dir"] == "SHORT" and pos.get("best_price", pos["entry"]) <= pos["entry"] - initial_risk)
-                    )
                     print(f"      {pos['dir']} {pos['shares']}sh @ ${pos['entry']:.3f}  "
                           f"Stop:${pos['stop']:.3f}{'(T)' if trail_active else ''}  "
                           f"Tgt:${pos['target']:.3f}  Unreal:${unreal:+.2f}")
