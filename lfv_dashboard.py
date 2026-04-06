@@ -378,7 +378,7 @@ ASSETS = {
         "timeframe": "1H bars",
         "schedule": "Mon-Fri 09:30-16:00 ET",
         "signal": "Supply and Demand zone refinement",
-        "params": "min_rr=3.0  trailing=0.5R",
+        "params": "min_rr=2.5  trail_act=1.5R  trail_dist=0.3R  slope=5",
         "accent": "#a47a1f",
     },
     "BTC-USD": {
@@ -389,7 +389,7 @@ ASSETS = {
         "timeframe": "5-minute bars",
         "schedule": "24/7 continuous scan",
         "signal": "Liquidity sweep, AVWAP and volume profile",
-        "params": "swing_n=8  min_rr=3.5  stop_buf=1 ATR",
+        "params": "swing_n=8  sweep_atr=0.25  min_rr=3.0  be=1.5R  trail=2.5R/0.5ATR",
         "accent": "#b46a3a",
     },
 }
