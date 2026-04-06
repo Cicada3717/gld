@@ -28,13 +28,12 @@ PARAMS = dict(
 )
 
 # ── FILTERS ─────────────────────────────────────────────────────────────────
-RSI_LOW   = 35       # skip RSI below this
-RSI_HIGH  = 68       # skip RSI above this
-ATR_LOW   = 0.80     # skip when entry_atr < ATR_LOW  * avg_atr_20
-ATR_HIGH  = 1.20     # skip when entry_atr > ATR_HIGH * avg_atr_20
-BODY_SKIP_LOW  = 0.30  # skip "small confirm" body range  [0.30 , 0.70)
+# RSI filter REMOVED — all RSI buckets have positive expected value (2.5 R:R saves them)
+ATR_LOW   = 0.80     # skip when entry_atr < ATR_LOW  * avg_atr_20  (low-vol = 0% WR)
+ATR_HIGH  = 1.20     # skip when entry_atr > ATR_HIGH * avg_atr_20  (elevated = 16% WR)
+BODY_SKIP_LOW  = 0.30  # skip "small confirm" body range  [0.30 , 0.70)  (27% WR, -$162 avg)
 BODY_SKIP_HIGH = 0.70
-BAD_HOURS = {10, 11, 12, 15, 19, 22}
+BAD_HOURS = {10, 11, 12, 15, 19}  # clearly negative avg P&L; removed 22 (only -$18, borderline)
 
 # ── indicators ──────────────────────────────────────────────────────────────
 
@@ -82,8 +81,7 @@ def efill(px, d): return px+SLIPPAGE if d=="LONG" else px-SLIPPAGE
 
 print(f"\n{'='*80}")
 print(f"  GC=F 1-YEAR FILTERED BACKTEST  |  {START} to today")
-print(f"  Filters: RSI {RSI_LOW}-{RSI_HIGH} | ATR regime {ATR_LOW}-{ATR_HIGH}x | "
-      f"no small-confirm body | skip hours {sorted(BAD_HOURS)}")
+print(f"  Filters: ATR regime {ATR_LOW}-{ATR_HIGH}x | no small-confirm body | skip hours {sorted(BAD_HOURS)}")
 print(f"{'='*80}\n")
 
 print("Fetching GC=F 1H data (15 months for zone warmup)...")
@@ -105,7 +103,7 @@ wins = losses = skipped = 0
 total_pnl = 0.0; trades = []
 peak = CAPITAL; max_dd = 0.0; monthly = {}
 trades_today_date = None; trades_today_count = 0
-skip_reasons = {"rsi":0, "atr":0, "body":0, "hour":0}
+skip_reasons = {"atr":0, "body":0, "hour":0}
 
 for ts, row in df1h[df1h.index >= replay_start].iterrows():
     dt = ts.to_pydatetime()
@@ -173,7 +171,6 @@ for ts, row in df1h[df1h.index >= replay_start].iterrows():
     t20  = closes[-1]-closes[-20] if len(closes)>=20 else 0
 
     # ── pre-compute filter values ─────────────────────────────────────────
-    entry_rsi  = rsi14(closes)
     entry_atr  = atr_val(highs, lows, closes)
     avg_atr_20 = atr_val(highs[-30:], lows[-30:], closes[-30:], 20) if len(closes)>=22 else entry_atr
     atr_ratio  = entry_atr / avg_atr_20 if avg_atr_20 > 0 else 1.0
@@ -206,8 +203,6 @@ for ts, row in df1h[df1h.index >= replay_start].iterrows():
             signed_body = body_pct if body_dir >= 0 else -body_pct  # positive = confirming for LONG
             if dt.hour in BAD_HOURS:
                 skip_reasons["hour"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
-            if not (RSI_LOW <= entry_rsi <= RSI_HIGH):
-                skip_reasons["rsi"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
             if not (ATR_LOW <= atr_ratio <= ATR_HIGH):
                 skip_reasons["atr"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
             if BODY_SKIP_LOW <= signed_body < BODY_SKIP_HIGH:
@@ -235,8 +230,6 @@ for ts, row in df1h[df1h.index >= replay_start].iterrows():
             signed_body = body_pct if body_dir <= 0 else -body_pct  # positive = confirming for SHORT
             if dt.hour in BAD_HOURS:
                 skip_reasons["hour"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
-            if not (RSI_LOW <= entry_rsi <= RSI_HIGH):
-                skip_reasons["rsi"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
             if not (ATR_LOW <= atr_ratio <= ATR_HIGH):
                 skip_reasons["atr"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
             if BODY_SKIP_LOW <= signed_body < BODY_SKIP_HIGH:
@@ -257,8 +250,7 @@ print(f"{'='*80}")
 print(f"  FILTERED RESULTS")
 print(f"{'='*80}")
 print(f"  Trades     : {n}  ({wins}W / {losses}L)  [skipped: {sum(skip_reasons.values())} zones]")
-print(f"  Skip breakdown: RSI={skip_reasons['rsi']}  ATR={skip_reasons['atr']}  "
-      f"Body={skip_reasons['body']}  Hour={skip_reasons['hour']}")
+print(f"  Skip breakdown: ATR={skip_reasons['atr']}  Body={skip_reasons['body']}  Hour={skip_reasons['hour']}")
 print(f"  Win Rate   : {wr:.1f}%")
 print(f"  ROI        : {roi:+.2f}%")
 print(f"  Net P&L    : ${total_pnl:+,.2f}")

@@ -56,14 +56,13 @@ TRADE_FIELDS = [
     "stop", "reason", "pnl", "balance", "signal_details",
 ]
 
-# -- Pattern-recognition entry filters ---------------------------------------
-FILTER_RSI_LOW   = 35
-FILTER_RSI_HIGH  = 68
+# -- Pattern-recognition entry filters (from analyze_losses.py) --------------
+# RSI filter removed: all RSI buckets positive EV at 2.5 R:R
 FILTER_ATR_LOW   = 0.80
 FILTER_ATR_HIGH  = 1.20
 FILTER_BODY_LOW  = 0.30
 FILTER_BODY_HIGH = 0.70
-FILTER_BAD_HOURS = {10, 11, 12, 15, 19, 22}
+FILTER_BAD_HOURS = {10, 11, 12, 15, 19}
 
 
 def _entry_fill(raw_price, direction):
@@ -113,19 +112,6 @@ def _prior_low(lows, skip, lookback):
     if start >= end:
         return min(lows[start:]) if lows[start:] else 9e9
     return min(lows[start:end])
-
-
-def _rsi14(closes, period=14):
-    if len(closes) < period + 1:
-        return 50.0
-    deltas = np.diff(closes[-period - 10:])
-    gains  = np.where(deltas > 0, deltas, 0.0)
-    loss_  = np.where(deltas < 0, -deltas, 0.0)
-    ag = np.mean(gains[-period:])
-    al = np.mean(loss_[-period:])
-    if al == 0:
-        return 100.0
-    return 100 - 100 / (1 + ag / al)
 
 
 def _atr14(highs, lows, closes, period=14):
@@ -271,7 +257,6 @@ def replay_zone(df1h, zones):
             continue
 
         # Pre-compute filter values
-        f_rsi       = _rsi14(closes)
         f_atr       = _atr14(highs, lows, closes)
         f_atr_avg   = _atr14(highs[-30:], lows[-30:], closes[-30:], 20) \
                       if len(closes) >= 22 else f_atr
@@ -315,8 +300,6 @@ def replay_zone(df1h, zones):
                 # Entry filters
                 signed_body = f_body_pct if f_body_bull else -f_body_pct
                 if dt.hour in FILTER_BAD_HOURS:
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
-                if not (FILTER_RSI_LOW <= f_rsi <= FILTER_RSI_HIGH):
                     zone["consumed"] = True; zone["consumed_date"] = date_str; break
                 if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
                     zone["consumed"] = True; zone["consumed_date"] = date_str; break
@@ -371,8 +354,6 @@ def replay_zone(df1h, zones):
                 # Entry filters
                 signed_body = f_body_pct if not f_body_bull else -f_body_pct
                 if dt.hour in FILTER_BAD_HOURS:
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
-                if not (FILTER_RSI_LOW <= f_rsi <= FILTER_RSI_HIGH):
                     zone["consumed"] = True; zone["consumed_date"] = date_str; break
                 if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
                     zone["consumed"] = True; zone["consumed_date"] = date_str; break
