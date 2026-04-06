@@ -378,7 +378,7 @@ ASSETS = {
         "timeframe": "1H bars",
         "schedule": "Sun 18:00 ET to Fri 17:00 ET",
         "signal": "Supply and Demand zone refinement",
-        "params": "min_rr=2.5  trail_act=1.5R  trail_dist=0.3R  slope=5",
+        "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.2R  slope=8  max2/day",
         "accent": "#a47a1f",
         "title": "Zone Strategy",
     },

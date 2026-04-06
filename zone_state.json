@@ -1,7 +1,7 @@
 {
   "ticker": "GC=F",
   "capital": 10000.0,
-  "balance": 12688.73,
+  "balance": 15494.33,
   "position": null,
   "zones": [
     {
@@ -861,9 +861,11 @@
     }
   ],
   "zones_date": "2026-04-06",
-  "last_processed_bar": "2026-04-06 07:00:00",
-  "total_trades": 30,
-  "total_pnl": 2688.73,
-  "wins": 15,
-  "losses": 15
+  "last_processed_bar": "2026-04-06 08:00:00",
+  "trades_today_date": "2026-04-06",
+  "trades_today_count": 0,
+  "total_trades": 24,
+  "total_pnl": 5494.33,
+  "wins": 11,
+  "losses": 13
 }

@@ -32,14 +32,15 @@ PARAMS = {
     "strength_bars":      3,
     "strength_mult":      1.5,
     "bos_ema":            21,
-    "bos_slope_bars":     5,      # OPTIMIZED: 3 -> 5  (better EMA trend filter)
+    "bos_slope_bars":     8,      # OPTIMIZED: stronger slope confirmation
     "stop_buffer":        0.001,
     "target_lookback":    60,
     "target_skip":        5,
-    "min_rr":             2.5,    # OPTIMIZED: 3.0 -> 2.5 (more qualifying zone entries)
+    "min_rr":             2.5,
     "risk_pct":           0.02,   # 2% per trade (conservative; 2.5% = +356% but higher variance)
-    "trail_activation_r": 1.5,    # OPTIMIZED: 1.0R -> 1.5R (let trade breathe first)
-    "trail_distance_r":   0.3,    # OPTIMIZED: 0.5R -> 0.3R (tight trail locks profits fast)
+    "trail_activation_r": 2.5,    # OPTIMIZED: let strong trends run before trailing
+    "trail_distance_r":   0.2,    # OPTIMIZED: tighter trail once activated
+    "max_trades_day":     2,      # OPTIMIZED: cap churn on busy sessions
     "leverage":           5.0,
     "commission":         0.0001,
 }
@@ -262,6 +263,9 @@ def run(ticker="GC=F", capital=500.0):
               f"Trades: {state['total_trades']}, P&L: ${state['total_pnl']:+,.2f}")
         if not state.get("zones"):
             state["zones"] = []
+        state.setdefault("last_processed_bar", None)
+        state.setdefault("trades_today_date", None)
+        state.setdefault("trades_today_count", 0)
     else:
         state = {
             "ticker":        ticker,
@@ -271,6 +275,8 @@ def run(ticker="GC=F", capital=500.0):
             "zones":         [],
             "zones_date":    None,   # date zones were last computed
             "last_processed_bar": None,
+            "trades_today_date": None,
+            "trades_today_count": 0,
             "total_trades":  0,
             "total_pnl":     0.0,
             "wins":          0,
@@ -372,6 +378,10 @@ def run(ticker="GC=F", capital=500.0):
                 bar_date_str = pd.Timestamp(current_ts).strftime("%Y-%m-%d")
                 bar_time_str = pd.Timestamp(current_ts).strftime("%H:%M")
 
+                if state.get("trades_today_date") != bar_date_str:
+                    state["trades_today_date"] = bar_date_str
+                    state["trades_today_count"] = 0
+
                 print(f"      Processing {bar_date_str} {bar_time_str}  Close:${price:.3f}  H:{high:.3f} L:{low:.3f}")
 
                 # ── Manage open position ──────────────────────────────
@@ -429,6 +439,11 @@ def run(ticker="GC=F", capital=500.0):
                 # ── Zone scan ─────────────────────────────────────────
                 if not state["position"]:
                     p = PARAMS
+                    if state.get("trades_today_count", 0) >= p["max_trades_day"]:
+                        print(f"      Daily cap reached ({p['max_trades_day']} trades)")
+                        state["last_processed_bar"] = str(current_ts)
+                        save_state(state)
+                        continue
                     bull = _bos_bullish(closes, p["bos_ema"], p["bos_slope_bars"])
                     bear = _bos_bearish(closes, p["bos_ema"], p["bos_slope_bars"])
                     trend_20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
@@ -488,6 +503,7 @@ def run(ticker="GC=F", capital=500.0):
                             }
                             zone["consumed"] = True
                             zone["consumed_date"] = bar_date_str
+                            state["trades_today_count"] = state.get("trades_today_count", 0) + 1
                             save_state(state)
 
                             print(f"\n  *** LONG {qty}sh @ ${entry_fill:.3f} (trigger:${price:.3f}, demand zone) ***")
@@ -546,6 +562,7 @@ def run(ticker="GC=F", capital=500.0):
                             }
                             zone["consumed"] = True
                             zone["consumed_date"] = bar_date_str
+                            state["trades_today_count"] = state.get("trades_today_count", 0) + 1
                             save_state(state)
 
                             print(f"\n  *** SHORT {qty}sh @ ${entry_fill:.3f} (trigger:${price:.3f}, supply zone) ***")

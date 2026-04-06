@@ -10,7 +10,8 @@ All bugs fixed:
   - Best-price tracking uses bar HIGH (LONG) / LOW (SHORT)
 
 Optimized params:
-  bos_slope_bars=5, min_rr=2.5, trail_activation=1.5R, trail_dist=0.3R
+  bos_slope_bars=8, min_rr=2.5, trail_activation=2.5R, trail_dist=0.2R
+  max_trades_day=2
 """
 
 import csv
@@ -38,12 +39,13 @@ yf.set_tz_cache_location(str(YF_CACHE_DIR))
 PARAMS = dict(
     strength_bars=3, strength_mult=1.5,
     bos_ema=21,
-    bos_slope_bars=5,        # OPTIMIZED (was 3)
+    bos_slope_bars=8,        # OPTIMIZED
     stop_buffer=0.001,
     target_lookback=60, target_skip=5,
-    min_rr=2.5,              # OPTIMIZED (was 3.0)
-    trail_activation_r=1.5,  # OPTIMIZED (was 1.0)
-    trail_distance_r=0.3,    # OPTIMIZED (was 0.5)
+    min_rr=2.5,
+    trail_activation_r=2.5,  # OPTIMIZED
+    trail_distance_r=0.2,    # OPTIMIZED
+    max_trades_day=2,        # OPTIMIZED
     risk_pct=0.02,
     leverage=5.0,
     commission=0.0001,
@@ -132,6 +134,8 @@ def replay_zone(df1h, zones):
     replay_start = pd.Timestamp(START_DATE.strftime("%Y-%m-%d"))
     zone_list    = [dict(z) for z in zones]
     last_processed_bar = None
+    trades_today_date = None
+    trades_today_count = 0
 
     for ts, row in df1h[df1h.index >= replay_start].iterrows():
         dt = ts.to_pydatetime()
@@ -145,6 +149,9 @@ def replay_zone(df1h, zones):
 
         date_str = ts.strftime("%Y-%m-%d")
         time_str = ts.strftime("%H:%M")
+        if trades_today_date != date_str:
+            trades_today_date = date_str
+            trades_today_count = 0
 
         hist   = df1h[df1h.index <= ts]
         closes = hist["Close"].tolist()
@@ -227,6 +234,9 @@ def replay_zone(df1h, zones):
         bear     = _bos_bearish(closes, p["bos_ema"], p["bos_slope_bars"])
         trend_20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
 
+        if trades_today_count >= p["max_trades_day"]:
+            continue
+
         for zone in zone_list:
             if zone.get("consumed"):
                 continue
@@ -271,6 +281,7 @@ def replay_zone(df1h, zones):
                     "initial_risk": abs(entry_fill - stop),
                 }
                 zone["consumed"] = True; zone["consumed_date"] = date_str
+                trades_today_count += 1
                 trades.append({
                     "date": date_str, "time": time_str,
                     "action": "BUY", "dir": "LONG", "shares": qty,
@@ -315,6 +326,7 @@ def replay_zone(df1h, zones):
                     "initial_risk": abs(entry_fill - stop),
                 }
                 zone["consumed"] = True; zone["consumed_date"] = date_str
+                trades_today_count += 1
                 trades.append({
                     "date": date_str, "time": time_str,
                     "action": "SELL", "dir": "SHORT", "shares": qty,
@@ -355,6 +367,8 @@ def replay_zone(df1h, zones):
         "ticker": TICKER, "capital": CAPITAL, "balance": round(balance, 2),
         "position": live_pos, "zones": [], "zones_date": None,
         "last_processed_bar": str(last_processed_bar) if last_processed_bar is not None else None,
+        "trades_today_date": trades_today_date,
+        "trades_today_count": trades_today_count,
         "total_trades": n, "total_pnl": round(total_pnl, 2),
         "wins": wins, "losses": losses,
     }
