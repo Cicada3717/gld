@@ -1,0 +1,12 @@
+{
+  "ticker": "GLD",
+  "capital": 10000.0,
+  "balance": 13027.74,
+  "position": null,
+  "zones": [],
+  "zones_date": null,
+  "total_trades": 12,
+  "total_pnl": 3027.74,
+  "wins": 9,
+  "losses": 3
+}

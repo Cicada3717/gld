@@ -2,6 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python replay.py && (python zone_paper_trader.py --ticker GC=F --capital 10000 & python lfv_paper_trader.py --capital 10000 & exec streamlit run lfv_dashboard.py --server.port $PORT --server.address 0.0.0.0)"
+startCommand = "python replay.py && python btc_replay.py && (python zone_paper_trader.py --ticker GLD --capital 10000 & python lfv_paper_trader.py --capital 10000 & exec streamlit run lfv_dashboard.py --server.port $PORT --server.address 0.0.0.0)"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

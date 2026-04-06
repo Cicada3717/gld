@@ -1,12 +1,12 @@
 {
   "ticker": "BTC-USD",
   "capital": 10000.0,
-  "balance": 11076.39,
+  "balance": 9360.86,
   "position": null,
-  "total_trades": 3,
-  "total_pnl": 1076.39,
-  "wins": 2,
-  "losses": 1,
-  "last_processed_bar": "2026-03-31 08:20:00+00:00",
-  "last_signal_bar": "2026-03-30 08:45:00+00:00"
+  "total_trades": 26,
+  "total_pnl": -639.14,
+  "wins": 5,
+  "losses": 21,
+  "last_signal_bar": null,
+  "last_processed_bar": null
 }
