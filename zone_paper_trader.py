@@ -47,6 +47,15 @@ PARAMS = {
 
 SLIPPAGE = 0.50
 
+# ── Pattern-recognition entry filters (from analyze_losses.py study) ─────────
+FILTER_RSI_LOW   = 35      # skip RSI below 35  (26% WR in <30 bucket)
+FILTER_RSI_HIGH  = 68      # skip RSI above 68  (34% WR in 70+ bucket)
+FILTER_ATR_LOW   = 0.80    # skip low-vol regime  (0% WR when ATR < 0.8x avg)
+FILTER_ATR_HIGH  = 1.20    # skip high-vol regime (16% WR when ATR > 1.2x avg)
+FILTER_BODY_LOW  = 0.30    # skip "small confirm" body range (27% WR)
+FILTER_BODY_HIGH = 0.70
+FILTER_BAD_HOURS = {10, 11, 12, 15, 19, 22}   # <25% WR each
+
 DATA_DIR   = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 TRADE_LOG  = DATA_DIR / "zone_trades.csv"
 STATE_FILE = DATA_DIR / "zone_state.json"
@@ -113,6 +122,32 @@ def _prior_low(lows, skip, lookback):
     if start >= end:
         return min(lows[start:]) if lows[start:] else 9e9
     return min(lows[start:end])
+
+
+def _rsi14(closes, period=14):
+    """RSI-14 from recent closes. Returns 50 if not enough data."""
+    if len(closes) < period + 1:
+        return 50.0
+    deltas = np.diff(closes[-period - 10:])
+    gains  = np.where(deltas > 0, deltas, 0.0)
+    loss_  = np.where(deltas < 0, -deltas, 0.0)
+    ag = np.mean(gains[-period:])
+    al = np.mean(loss_[-period:])
+    if al == 0:
+        return 100.0
+    return 100 - 100 / (1 + ag / al)
+
+
+def _atr14(highs, lows, closes, period=14):
+    """ATR over `period` bars."""
+    h = np.array(highs[-period - 2:])
+    l = np.array(lows[-period - 2:])
+    c = np.array(closes[-period - 2:])
+    if len(h) < 2:
+        return 1.0
+    tr = np.maximum(h[1:] - l[1:],
+                    np.maximum(abs(h[1:] - c[:-1]), abs(l[1:] - c[:-1])))
+    return float(np.mean(tr[-period:])) if len(tr) >= period else float(np.mean(tr))
 
 
 # ── Data ──────────────────────────────────────────────────────────────────────
@@ -448,6 +483,16 @@ def run(ticker="GC=F", capital=500.0):
                     bear = _bos_bearish(closes, p["bos_ema"], p["bos_slope_bars"])
                     trend_20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
 
+                    # ── Pre-compute filter values once per bar ────────────
+                    f_rsi      = _rsi14(closes)
+                    f_atr      = _atr14(highs, lows, closes)
+                    f_atr_avg  = _atr14(highs[-30:], lows[-30:], closes[-30:], 20) \
+                                 if len(closes) >= 22 else f_atr
+                    f_atr_ratio = f_atr / f_atr_avg if f_atr_avg > 0 else 1.0
+                    f_body_raw  = float(hist["Close"].iloc[-1]) - float(hist["Open"].iloc[-1])
+                    f_body_pct  = abs(f_body_raw) / f_atr if f_atr > 0 else 0.0
+                    f_body_bull = f_body_raw >= 0  # True = bullish candle
+
                     entered = False
                     for zone in state["zones"]:
                         if zone.get("consumed"):
@@ -488,6 +533,23 @@ def run(ticker="GC=F", capital=500.0):
                             qty = _qty(state["balance"], price, risk)
                             if qty <= 0:
                                 continue
+
+                            # ── Entry filters ─────────────────────────────
+                            # LONG: confirming body = bullish candle (body_bull)
+                            signed_body = f_body_pct if f_body_bull else -f_body_pct
+                            if ts.hour in FILTER_BAD_HOURS:
+                                print(f"      FILTER: bad hour {ts.hour}:00 — skip demand zone")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            if not (FILTER_RSI_LOW <= f_rsi <= FILTER_RSI_HIGH):
+                                print(f"      FILTER: RSI={f_rsi:.1f} outside {FILTER_RSI_LOW}-{FILTER_RSI_HIGH} — skip")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
+                                print(f"      FILTER: ATR ratio={f_atr_ratio:.2f} outside normal — skip")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
+                                print(f"      FILTER: small-confirm body={signed_body:.2f} — skip")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            # ─────────────────────────────────────────────
 
                             entry_fill = _entry_fill(price, "LONG")
                             state["position"] = {
@@ -547,6 +609,23 @@ def run(ticker="GC=F", capital=500.0):
                             qty = _qty(state["balance"], price, risk)
                             if qty <= 0:
                                 continue
+
+                            # ── Entry filters ─────────────────────────────
+                            # SHORT: confirming body = bearish candle (not body_bull)
+                            signed_body = f_body_pct if not f_body_bull else -f_body_pct
+                            if ts.hour in FILTER_BAD_HOURS:
+                                print(f"      FILTER: bad hour {ts.hour}:00 — skip supply zone")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            if not (FILTER_RSI_LOW <= f_rsi <= FILTER_RSI_HIGH):
+                                print(f"      FILTER: RSI={f_rsi:.1f} outside {FILTER_RSI_LOW}-{FILTER_RSI_HIGH} — skip")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
+                                print(f"      FILTER: ATR ratio={f_atr_ratio:.2f} outside normal — skip")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
+                                print(f"      FILTER: small-confirm body={signed_body:.2f} — skip")
+                                zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
+                            # ─────────────────────────────────────────────
 
                             entry_fill = _entry_fill(price, "SHORT")
                             state["position"] = {

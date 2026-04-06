@@ -56,6 +56,15 @@ TRADE_FIELDS = [
     "stop", "reason", "pnl", "balance", "signal_details",
 ]
 
+# -- Pattern-recognition entry filters ---------------------------------------
+FILTER_RSI_LOW   = 35
+FILTER_RSI_HIGH  = 68
+FILTER_ATR_LOW   = 0.80
+FILTER_ATR_HIGH  = 1.20
+FILTER_BODY_LOW  = 0.30
+FILTER_BODY_HIGH = 0.70
+FILTER_BAD_HOURS = {10, 11, 12, 15, 19, 22}
+
 
 def _entry_fill(raw_price, direction):
     return raw_price + SLIPPAGE if direction == "LONG" else raw_price - SLIPPAGE
@@ -104,6 +113,30 @@ def _prior_low(lows, skip, lookback):
     if start >= end:
         return min(lows[start:]) if lows[start:] else 9e9
     return min(lows[start:end])
+
+
+def _rsi14(closes, period=14):
+    if len(closes) < period + 1:
+        return 50.0
+    deltas = np.diff(closes[-period - 10:])
+    gains  = np.where(deltas > 0, deltas, 0.0)
+    loss_  = np.where(deltas < 0, -deltas, 0.0)
+    ag = np.mean(gains[-period:])
+    al = np.mean(loss_[-period:])
+    if al == 0:
+        return 100.0
+    return 100 - 100 / (1 + ag / al)
+
+
+def _atr14(highs, lows, closes, period=14):
+    h = np.array(highs[-period - 2:])
+    l = np.array(lows[-period - 2:])
+    c = np.array(closes[-period - 2:])
+    if len(h) < 2:
+        return 1.0
+    tr = np.maximum(h[1:] - l[1:],
+                    np.maximum(abs(h[1:] - c[:-1]), abs(l[1:] - c[:-1])))
+    return float(np.mean(tr[-period:])) if len(tr) >= period else float(np.mean(tr))
 
 
 # -- I/O ---------------------------------------------------------------------
@@ -237,6 +270,16 @@ def replay_zone(df1h, zones):
         if trades_today_count >= p["max_trades_day"]:
             continue
 
+        # Pre-compute filter values
+        f_rsi       = _rsi14(closes)
+        f_atr       = _atr14(highs, lows, closes)
+        f_atr_avg   = _atr14(highs[-30:], lows[-30:], closes[-30:], 20) \
+                      if len(closes) >= 22 else f_atr
+        f_atr_ratio = f_atr / f_atr_avg if f_atr_avg > 0 else 1.0
+        f_body_raw  = float(row["Close"]) - float(row["Open"])
+        f_body_pct  = abs(f_body_raw) / f_atr if f_atr > 0 else 0.0
+        f_body_bull = f_body_raw >= 0
+
         for zone in zone_list:
             if zone.get("consumed"):
                 continue
@@ -268,6 +311,17 @@ def replay_zone(df1h, zones):
                 qty = min(int(balance * p["risk_pct"] / actual_risk),
                           int(balance * p["leverage"] / price))
                 if qty <= 0: continue
+
+                # Entry filters
+                signed_body = f_body_pct if f_body_bull else -f_body_pct
+                if dt.hour in FILTER_BAD_HOURS:
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                if not (FILTER_RSI_LOW <= f_rsi <= FILTER_RSI_HIGH):
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
 
                 entry_fill = _entry_fill(price, "LONG")
                 position = {
@@ -313,6 +367,17 @@ def replay_zone(df1h, zones):
                 qty = min(int(balance * p["risk_pct"] / actual_risk),
                           int(balance * p["leverage"] / price))
                 if qty <= 0: continue
+
+                # Entry filters
+                signed_body = f_body_pct if not f_body_bull else -f_body_pct
+                if dt.hour in FILTER_BAD_HOURS:
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                if not (FILTER_RSI_LOW <= f_rsi <= FILTER_RSI_HIGH):
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
+                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
 
                 entry_fill = _entry_fill(price, "SHORT")
                 position = {
