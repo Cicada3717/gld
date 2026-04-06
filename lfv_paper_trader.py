@@ -21,6 +21,8 @@ import yfinance as yf
 
 from signal_scanner import detect_signal
 
+SLIPPAGE = 25.0   # $25 per BTC per side (~0.03% at $85K)
+
 ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
 
@@ -33,17 +35,17 @@ TICKER_CFG = {
     "BTC-USD": {
         "params": {
             "swing_n": 8,
-            "sweep_min_atr": 0.40,
+            "sweep_min_atr": 0.25,    # optimized (was 0.40)
             "avwap_tolerance": 0.007,
             "vp_lookback": 80,
             "vp_buckets": 40,
             "vah_val_pct": 0.75,
             "lvn_ratio": 0.20,
             "stop_atr_buffer": 1.0,
-            "min_rr": 3.5,
-            "be_after_r": 2.0,
-            "trail_after_r": 3.0,
-            "trail_atr": 0.75,
+            "min_rr": 3.0,            # optimized (was 3.5)
+            "be_after_r": 1.5,        # optimized (was 2.0)
+            "trail_after_r": 2.5,     # optimized (was 3.0)
+            "trail_atr": 0.50,        # optimized (was 0.75)
             "risk_pct": 0.02,
             "leverage": 5.0,
             "commission": 0.0002,
@@ -128,26 +130,31 @@ def _current_atr(df, period=14):
     return float(np.mean(tr[-period:]))
 
 
-def _qty(balance, price, risk, params):
-    if risk <= 0 or price <= 0:
+def _qty(balance, price, stop_dist, params):
+    # BUG FIX: include entry + exit slippage in actual risk ($25 each side)
+    actual_risk = stop_dist + 2 * SLIPPAGE
+    if actual_risk <= 0 or price <= 0:
         return 0
     if params.get("fractional_size"):
-        risk_shares = balance * params["risk_pct"] / risk
+        risk_shares = balance * params["risk_pct"] / actual_risk
         lev_shares = balance * params["leverage"] / price
         return round(min(risk_shares, lev_shares), 6)
-    risk_shares = int(balance * params["risk_pct"] / risk)
+    risk_shares = int(balance * params["risk_pct"] / actual_risk)
     lev_shares = int(balance * params["leverage"] / price)
     return min(risk_shares, lev_shares)
 
 
-def _close_position(ticker, state, price, reason, params, bar_time=None):
+def _close_position(ticker, state, exit_raw, reason, params, bar_time=None):
     pos = state["position"]
     if not pos:
         return
 
+    # BUG FIX: apply slippage to exit price ($25 per side)
     if pos["dir"] == "LONG":
+        price = exit_raw - SLIPPAGE   # sell into slippage -> receive less
         pnl = (price - pos["entry"]) * pos["shares"]
     else:
+        price = exit_raw + SLIPPAGE   # buy to cover -> pay more
         pnl = (pos["entry"] - price) * pos["shares"]
     comm = (pos["entry"] + price) * pos["shares"] * params["commission"]
     net_pnl = pnl - comm
@@ -189,7 +196,12 @@ def _close_position(ticker, state, price, reason, params, bar_time=None):
     save_state(ticker, state)
 
 
-def _manage_position(ticker, state, price, atr, params, bar_time=None):
+def _manage_position(ticker, state, bar_close, bar_high, bar_low, atr, params, bar_time=None):
+    """
+    Manage open position for one bar.
+    BUG FIX: uses bar HIGH/LOW for stop checks and best-price tracking,
+             not just the bar CLOSE.
+    """
     if not state["position"]:
         return
 
@@ -199,7 +211,13 @@ def _manage_position(ticker, state, price, atr, params, bar_time=None):
     phase = pos.get("phase", 1)
 
     if pos["dir"] == "LONG":
-        profit_r = (price - entry) / init_risk if init_risk > 0 else 0
+        # BUG FIX: track best price using bar HIGH, not close
+        best_px = pos.get("best_px", entry)
+        if bar_high > best_px:
+            best_px = bar_high
+            pos["best_px"] = best_px
+
+        profit_r = (best_px - entry) / init_risk if init_risk > 0 else 0
 
         if phase == 1 and profit_r >= params["be_after_r"]:
             new_stop = entry
@@ -209,24 +227,31 @@ def _manage_position(ticker, state, price, atr, params, bar_time=None):
                 save_state(ticker, state)
 
         if phase <= 2 and profit_r >= params["trail_after_r"]:
-            new_stop = price - atr * params["trail_atr"]
+            new_stop = best_px - atr * params["trail_atr"]
             if new_stop > pos["stop"]:
                 pos["stop"] = new_stop
                 pos["phase"] = 3
                 save_state(ticker, state)
 
         if pos.get("phase", phase) == 3:
-            new_stop = price - atr * params["trail_atr"]
+            new_stop = best_px - atr * params["trail_atr"]
             if new_stop > pos["stop"]:
                 pos["stop"] = new_stop
                 save_state(ticker, state)
 
-        if price <= pos["stop"]:
+        # BUG FIX: check stop using bar LOW, not bar CLOSE
+        if bar_low <= pos["stop"]:
             reason = {1: "STOP", 2: "BE_STOP", 3: "TRAIL_STOP"}.get(pos.get("phase", phase), "STOP")
             _close_position(ticker, state, pos["stop"], reason, params, bar_time=bar_time)
 
     else:
-        profit_r = (entry - price) / init_risk if init_risk > 0 else 0
+        # BUG FIX: track best price using bar LOW, not close
+        best_px = pos.get("best_px", entry)
+        if bar_low < best_px:
+            best_px = bar_low
+            pos["best_px"] = best_px
+
+        profit_r = (entry - best_px) / init_risk if init_risk > 0 else 0
 
         if phase == 1 and profit_r >= params["be_after_r"]:
             new_stop = entry
@@ -236,19 +261,20 @@ def _manage_position(ticker, state, price, atr, params, bar_time=None):
                 save_state(ticker, state)
 
         if phase <= 2 and profit_r >= params["trail_after_r"]:
-            new_stop = price + atr * params["trail_atr"]
+            new_stop = best_px + atr * params["trail_atr"]
             if new_stop < pos["stop"]:
                 pos["stop"] = new_stop
                 pos["phase"] = 3
                 save_state(ticker, state)
 
         if pos.get("phase", phase) == 3:
-            new_stop = price + atr * params["trail_atr"]
+            new_stop = best_px + atr * params["trail_atr"]
             if new_stop < pos["stop"]:
                 pos["stop"] = new_stop
                 save_state(ticker, state)
 
-        if price >= pos["stop"]:
+        # BUG FIX: check stop using bar HIGH, not bar CLOSE
+        if bar_high >= pos["stop"]:
             reason = {1: "STOP", 2: "BE_STOP", 3: "TRAIL_STOP"}.get(pos.get("phase", phase), "STOP")
             _close_position(ticker, state, pos["stop"], reason, params, bar_time=bar_time)
 
@@ -311,11 +337,14 @@ def process_ticker(ticker, state, last_signal_bar, cfg):
         if len(sub) < 50:
             continue
 
+        # BUG FIX: extract HIGH and LOW per bar (previously only Close was fetched)
         bar_price = float(sub["Close"].iloc[-1])
-        bar_atr = _current_atr(sub)
+        bar_high  = float(sub["High"].iloc[-1])
+        bar_low   = float(sub["Low"].iloc[-1])
+        bar_atr   = _current_atr(sub)
 
         if state["position"]:
-            _manage_position(ticker, state, bar_price, bar_atr, params, bar_time=current_ts)
+            _manage_position(ticker, state, bar_price, bar_high, bar_low, bar_atr, params, bar_time=current_ts)
 
         if not state["position"]:
             sig = detect_signal(sub, sig_cfg)
