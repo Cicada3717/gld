@@ -1,5 +1,5 @@
 """
-lfv_dashboard.py - Premium live dashboard for GLD and BTC-USD.
+lfv_dashboard.py - Premium live dashboard for GC=F and BTC-USD.
 """
 import json
 import os
@@ -370,16 +370,17 @@ div[data-testid="stDataFrame"] {
 DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 
 ASSETS = {
-    "GLD": {
-        "label": "GLD",
-        "name": "Gold ETF",
+    "GC=F": {
+        "label": "GC=F",
+        "name": "Gold Futures",
         "state": DATA_DIR / "zone_state.json",
         "trades": DATA_DIR / "zone_trades.csv",
         "timeframe": "1H bars",
-        "schedule": "Mon-Fri 09:30-16:00 ET",
+        "schedule": "Sun 18:00 ET to Fri 17:00 ET",
         "signal": "Supply and Demand zone refinement",
         "params": "min_rr=2.5  trail_act=1.5R  trail_dist=0.3R  slope=5",
         "accent": "#a47a1f",
+        "title": "Zone Strategy",
     },
     "BTC-USD": {
         "label": "BTC-USD",
@@ -391,6 +392,7 @@ ASSETS = {
         "signal": "Liquidity sweep, AVWAP and volume profile",
         "params": "swing_n=8  sweep_atr=0.25  min_rr=3.0  be=1.5R  trail=2.5R/0.5ATR",
         "accent": "#b46a3a",
+        "title": "LFV Strategy",
     },
 }
 
@@ -500,6 +502,7 @@ def build_snapshot(asset_key):
 
 
 def render_hero(snapshot):
+    cfg = snapshot["cfg"]
     open_pos = snapshot["open_pos"]
     open_status = "Open trade" if open_pos else "No open trade"
     open_sub = (
@@ -512,10 +515,10 @@ def render_hero(snapshot):
 <div class="hero-shell">
   <div class="eyebrow">Live paper trading</div>
   <div class="hero-grid">
-    <div>
-      <div class="hero-title">LFV Strategy</div>
-      <p class="hero-copy">Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-    </div>
+      <div>
+        <div class="hero-title">{cfg['title']}</div>
+        <p class="hero-copy">Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+      </div>
     <div class="hero-stack">
       <div class="mini-panel">
         <div class="mini-label">Today's P&amp;L</div>
@@ -540,19 +543,29 @@ def render_hero(snapshot):
     )
 
 
-def render_position_banner(open_pos):
-    phase_names = {1: "Hard stop", 2: "Breakeven", 3: "Trailing"}
-    phase_str = phase_names.get(open_pos.get("phase", 1), "?")
+def render_position_banner(snapshot):
+    open_pos = snapshot["open_pos"]
+    if snapshot["cfg"]["label"] == "BTC-USD":
+        phase_names = {1: "Hard stop", 2: "Breakeven", 3: "Trailing"}
+        phase_str = phase_names.get(open_pos.get("phase", 1), "?")
+        copy = (
+            f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} units at ${open_pos.get('entry', 0):,.3f} "
+            f"with stop ${open_pos.get('stop', 0):,.3f} in {phase_str} mode.<br>"
+            f"Entered {open_pos.get('entry_time', '?')} | Swept {open_pos.get('swept_lvl', 0):,.3f} "
+            f"| AVWAP {open_pos.get('avwap', 0):,.3f} | POC {open_pos.get('poc', 0):,.3f}"
+        )
+    else:
+        copy = (
+            f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} contracts at ${open_pos.get('entry', 0):,.3f} "
+            f"with stop ${open_pos.get('stop', 0):,.3f} and target ${open_pos.get('target', 0):,.3f}.<br>"
+            f"Entered {open_pos.get('entry_time', '?')} | Zone {open_pos.get('zone_type', '?')} "
+            f"| Trigger ${open_pos.get('entry_trigger', open_pos.get('entry', 0)):.3f}"
+        )
     st.markdown(
         f"""
 <div class="position-banner">
   <div class="position-title">Open position</div>
-  <div class="position-copy">
-    {open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} units at ${open_pos.get('entry', 0):,.3f}
-    with stop ${open_pos.get('stop', 0):,.3f} in {phase_str} mode.<br>
-    Entered {open_pos.get('entry_time', '?')} | Swept {open_pos.get('swept_lvl', 0):,.3f}
-    | AVWAP {open_pos.get('avwap', 0):,.3f} | POC {open_pos.get('poc', 0):,.3f}
-  </div>
+  <div class="position-copy">{copy}</div>
 </div>
 """,
         unsafe_allow_html=True,
@@ -751,7 +764,7 @@ def render_asset(snapshot, asset_key):
     card(c6, "Status", "Active" if snapshot["open_pos"] else "Monitoring", "Position manager state", "neutral")
 
     if snapshot["open_pos"]:
-        render_position_banner(snapshot["open_pos"])
+        render_position_banner(snapshot)
 
     left, right = st.columns([1.45, 1])
     with left:
@@ -760,7 +773,7 @@ def render_asset(snapshot, asset_key):
         render_daily_pnl(snapshot)
 
     render_trade_table(snapshot)
-    if asset_key == "GLD":
+    if asset_key == "GC=F":
         st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
 
 
@@ -788,7 +801,7 @@ Parameters: {cfg['params']}
 
 selected_view = st.radio(
     "Asset View",
-    options=["GLD", "BTC-USD"],
+    options=["GC=F", "BTC-USD"],
     horizontal=True,
     index=0,
     label_visibility="collapsed",

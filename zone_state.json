@@ -1,12 +1,869 @@
 {
-  "ticker": "GLD",
+  "ticker": "GC=F",
   "capital": 10000.0,
-  "balance": 13027.74,
+  "balance": 12688.73,
   "position": null,
-  "zones": [],
-  "zones_date": null,
-  "total_trades": 12,
-  "total_pnl": 3027.74,
-  "wins": 9,
-  "losses": 3
+  "zones": [
+    {
+      "type": "supply",
+      "formed_at": "2025-10-09T00:00:00",
+      "htf_top": 4062.10009765625,
+      "htf_bottom": 4041.10009765625,
+      "refined_top": 4062.10009765625,
+      "refined_bottom": 4053.199951171875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-09T04:00:00",
+      "htf_top": 4066.89990234375,
+      "htf_bottom": 4049.800048828125,
+      "refined_top": 4064.10009765625,
+      "refined_bottom": 4055.699951171875,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-10-16T00:00:00",
+      "htf_top": 4253.2001953125,
+      "htf_bottom": 4216.39990234375,
+      "refined_top": 4248.0,
+      "refined_bottom": 4216.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-10-16T04:00:00",
+      "htf_top": 4264.0,
+      "htf_bottom": 4238.10009765625,
+      "refined_top": 4250.2998046875,
+      "refined_bottom": 4243.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-10-16T08:00:00",
+      "htf_top": 4292.7001953125,
+      "htf_bottom": 4241.89990234375,
+      "refined_top": 4266.7998046875,
+      "refined_bottom": 4241.89990234375,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-17T00:00:00",
+      "htf_top": 4390.39990234375,
+      "htf_bottom": 4320.0,
+      "refined_top": 4389.60009765625,
+      "refined_bottom": 4367.5,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-17T04:00:00",
+      "htf_top": 4363.7998046875,
+      "htf_bottom": 4298.0,
+      "refined_top": 4363.7998046875,
+      "refined_bottom": 4332.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-10-20T00:00:00",
+      "htf_top": 4281.5,
+      "htf_bottom": 4233.60009765625,
+      "refined_top": 4258.60009765625,
+      "refined_bottom": 4233.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-10-20T04:00:00",
+      "htf_top": 4295.2998046875,
+      "htf_bottom": 4259.5,
+      "refined_top": 4275.5,
+      "refined_bottom": 4259.5,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-20T16:00:00",
+      "htf_top": 4396.5,
+      "htf_bottom": 4363.7001953125,
+      "refined_top": 4393.60009765625,
+      "refined_bottom": 4370.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-20T20:00:00",
+      "htf_top": 4390.0,
+      "htf_bottom": 4348.39990234375,
+      "refined_top": 4387.89990234375,
+      "refined_bottom": 4372.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-21T00:00:00",
+      "htf_top": 4362.7998046875,
+      "htf_bottom": 4309.2998046875,
+      "refined_top": 4359.60009765625,
+      "refined_bottom": 4333.0,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-21T04:00:00",
+      "htf_top": 4316.2998046875,
+      "htf_bottom": 4257.7001953125,
+      "refined_top": 4316.2998046875,
+      "refined_bottom": 4257.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-10-26T20:00:00",
+      "htf_top": 4112.0,
+      "htf_bottom": 4071.800048828125,
+      "refined_top": 4098.39990234375,
+      "refined_bottom": 4071.800048828125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-07T12:00:00",
+      "htf_top": 4018.0,
+      "htf_bottom": 3999.60009765625,
+      "refined_top": 4014.39990234375,
+      "refined_bottom": 4002.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-07T16:00:00",
+      "htf_top": 4013.10009765625,
+      "htf_bottom": 4006.300048828125,
+      "refined_top": 4013.10009765625,
+      "refined_bottom": 4006.300048828125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-09T16:00:00",
+      "htf_top": 4032.10009765625,
+      "htf_bottom": 4009.800048828125,
+      "refined_top": 4020.39990234375,
+      "refined_bottom": 4009.800048828125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-09T20:00:00",
+      "htf_top": 4065.89990234375,
+      "htf_bottom": 4026.800048828125,
+      "refined_top": 4062.0,
+      "refined_bottom": 4026.800048828125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-11T20:00:00",
+      "htf_top": 4143.2001953125,
+      "htf_bottom": 4109.39990234375,
+      "refined_top": 4119.39990234375,
+      "refined_bottom": 4109.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-12T00:00:00",
+      "htf_top": 4138.2001953125,
+      "htf_bottom": 4104.39990234375,
+      "refined_top": 4116.7998046875,
+      "refined_bottom": 4104.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-12T04:00:00",
+      "htf_top": 4145.89990234375,
+      "htf_bottom": 4123.39990234375,
+      "refined_top": 4139.60009765625,
+      "refined_bottom": 4126.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-11-13T04:00:00",
+      "htf_top": 4250.0,
+      "htf_bottom": 4224.0,
+      "refined_top": 4250.0,
+      "refined_bottom": 4234.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-11-13T20:00:00",
+      "htf_top": 4215.10009765625,
+      "htf_bottom": 4176.2001953125,
+      "refined_top": 4213.0,
+      "refined_bottom": 4191.2998046875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-11-14T00:00:00",
+      "htf_top": 4206.60009765625,
+      "htf_bottom": 4162.10009765625,
+      "refined_top": 4206.60009765625,
+      "refined_bottom": 4186.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-11-24T00:00:00",
+      "htf_top": 4064.5,
+      "htf_bottom": 4036.39990234375,
+      "refined_top": 4046.300048828125,
+      "refined_bottom": 4036.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-19T12:00:00",
+      "htf_top": 4389.0,
+      "htf_bottom": 4368.0,
+      "refined_top": 4377.60009765625,
+      "refined_bottom": 4368.0,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-19T16:00:00",
+      "htf_top": 4387.2998046875,
+      "htf_bottom": 4367.7998046875,
+      "refined_top": 4387.2998046875,
+      "refined_bottom": 4367.7998046875,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-21T16:00:00",
+      "htf_top": 4397.10009765625,
+      "htf_bottom": 4372.7998046875,
+      "refined_top": 4386.2001953125,
+      "refined_bottom": 4372.7998046875,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-21T20:00:00",
+      "htf_top": 4433.7001953125,
+      "htf_bottom": 4391.7001953125,
+      "refined_top": 4417.5,
+      "refined_bottom": 4391.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-22T04:00:00",
+      "htf_top": 4449.89990234375,
+      "htf_bottom": 4439.5,
+      "refined_top": 4449.60009765625,
+      "refined_bottom": 4439.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-22T12:00:00",
+      "htf_top": 4477.2998046875,
+      "htf_bottom": 4464.10009765625,
+      "refined_top": 4471.39990234375,
+      "refined_bottom": 4464.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-24T12:00:00",
+      "htf_top": 4513.39990234375,
+      "htf_bottom": 4501.2998046875,
+      "refined_top": 4513.39990234375,
+      "refined_bottom": 4501.2998046875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-12-26T16:00:00",
+      "htf_top": 4565.89990234375,
+      "htf_bottom": 4552.7001953125,
+      "refined_top": 4565.89990234375,
+      "refined_bottom": 4552.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-12-28T20:00:00",
+      "htf_top": 4545.0,
+      "htf_bottom": 4511.60009765625,
+      "refined_top": 4545.0,
+      "refined_bottom": 4533.7998046875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-12-29T00:00:00",
+      "htf_top": 4541.39990234375,
+      "htf_bottom": 4463.2998046875,
+      "refined_top": 4541.39990234375,
+      "refined_bottom": 4526.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2025-12-29T04:00:00",
+      "htf_top": 4496.60009765625,
+      "htf_bottom": 4454.39990234375,
+      "refined_top": 4496.60009765625,
+      "refined_bottom": 4479.5,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2025-12-31T16:00:00",
+      "htf_top": 4333.2001953125,
+      "htf_bottom": 4320.7001953125,
+      "refined_top": 4333.2001953125,
+      "refined_bottom": 4320.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-01-02T04:00:00",
+      "htf_top": 4411.7998046875,
+      "htf_bottom": 4395.60009765625,
+      "refined_top": 4410.7998046875,
+      "refined_bottom": 4396.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-02T12:00:00",
+      "htf_top": 4344.5,
+      "htf_bottom": 4319.7001953125,
+      "refined_top": 4334.10009765625,
+      "refined_bottom": 4319.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-02T16:00:00",
+      "htf_top": 4342.7001953125,
+      "htf_bottom": 4329.60009765625,
+      "refined_top": 4342.7001953125,
+      "refined_bottom": 4329.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-09T08:00:00",
+      "htf_top": 4527.0,
+      "htf_bottom": 4467.0,
+      "refined_top": 4500.7998046875,
+      "refined_bottom": 4467.0,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-09T12:00:00",
+      "htf_top": 4521.5,
+      "htf_bottom": 4491.39990234375,
+      "refined_top": 4521.5,
+      "refined_bottom": 4491.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-09T16:00:00",
+      "htf_top": 4520.2998046875,
+      "htf_bottom": 4513.60009765625,
+      "refined_top": 4520.2998046875,
+      "refined_bottom": 4513.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-16T12:00:00",
+      "htf_top": 4601.10009765625,
+      "htf_bottom": 4581.0,
+      "refined_top": 4597.89990234375,
+      "refined_bottom": 4581.0,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-16T16:00:00",
+      "htf_top": 4602.10009765625,
+      "htf_bottom": 4587.2001953125,
+      "refined_top": 4602.10009765625,
+      "refined_bottom": 4587.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-18T20:00:00",
+      "htf_top": 4672.2998046875,
+      "htf_bottom": 4595.39990234375,
+      "refined_top": 4672.2998046875,
+      "refined_bottom": 4595.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-20T08:00:00",
+      "htf_top": 4762.0,
+      "htf_bottom": 4720.0,
+      "refined_top": 4753.7001953125,
+      "refined_bottom": 4726.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-20T12:00:00",
+      "htf_top": 4771.5,
+      "htf_bottom": 4750.2998046875,
+      "refined_top": 4766.60009765625,
+      "refined_bottom": 4752.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-20T16:00:00",
+      "htf_top": 4792.89990234375,
+      "htf_bottom": 4761.10009765625,
+      "refined_top": 4769.2998046875,
+      "refined_bottom": 4761.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-22T00:00:00",
+      "htf_top": 4841.10009765625,
+      "htf_bottom": 4794.7001953125,
+      "refined_top": 4822.10009765625,
+      "refined_bottom": 4794.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-22T04:00:00",
+      "htf_top": 4839.5,
+      "htf_bottom": 4815.2998046875,
+      "refined_top": 4834.60009765625,
+      "refined_bottom": 4820.5,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-22T08:00:00",
+      "htf_top": 4888.10009765625,
+      "htf_bottom": 4809.60009765625,
+      "refined_top": 4837.39990234375,
+      "refined_bottom": 4809.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-23T16:00:00",
+      "htf_top": 4990.2001953125,
+      "htf_bottom": 4978.60009765625,
+      "refined_top": 4990.2001953125,
+      "refined_bottom": 4978.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-27T08:00:00",
+      "htf_top": 5100.2998046875,
+      "htf_bottom": 5042.0,
+      "refined_top": 5077.89990234375,
+      "refined_bottom": 5042.0,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-27T12:00:00",
+      "htf_top": 5184.2001953125,
+      "htf_bottom": 5074.0,
+      "refined_top": 5092.0,
+      "refined_bottom": 5074.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-27T16:00:00",
+      "htf_top": 5190.7998046875,
+      "htf_bottom": 5154.7998046875,
+      "refined_top": 5177.0,
+      "refined_bottom": 5154.7998046875,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-28T04:00:00",
+      "htf_top": 5331.2001953125,
+      "htf_bottom": 5271.0,
+      "refined_top": 5305.0,
+      "refined_bottom": 5271.0,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-28T08:00:00",
+      "htf_top": 5334.5,
+      "htf_bottom": 5266.5,
+      "refined_top": 5322.10009765625,
+      "refined_bottom": 5288.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-01-28T12:00:00",
+      "htf_top": 5425.10009765625,
+      "htf_bottom": 5301.0,
+      "refined_top": 5360.60009765625,
+      "refined_bottom": 5301.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-01-28T20:00:00",
+      "htf_top": 5595.0,
+      "htf_bottom": 5472.39990234375,
+      "refined_top": 5595.0,
+      "refined_bottom": 5563.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-01-29T00:00:00",
+      "htf_top": 5625.89990234375,
+      "htf_bottom": 5503.89990234375,
+      "refined_top": 5625.89990234375,
+      "refined_bottom": 5583.7998046875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-01-29T04:00:00",
+      "htf_top": 5573.2998046875,
+      "htf_bottom": 5501.0,
+      "refined_top": 5573.2998046875,
+      "refined_bottom": 5549.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-01-29T16:00:00",
+      "htf_top": 5480.2001953125,
+      "htf_bottom": 5400.0,
+      "refined_top": 5478.60009765625,
+      "refined_bottom": 5407.5,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-02-11T20:00:00",
+      "htf_top": 5096.0,
+      "htf_bottom": 5065.0,
+      "refined_top": 5091.10009765625,
+      "refined_bottom": 5072.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-02-12T00:00:00",
+      "htf_top": 5099.2998046875,
+      "htf_bottom": 5068.89990234375,
+      "refined_top": 5099.2998046875,
+      "refined_bottom": 5085.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-02-12T04:00:00",
+      "htf_top": 5102.5,
+      "htf_bottom": 5070.60009765625,
+      "refined_top": 5102.5,
+      "refined_bottom": 5087.2998046875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-02-13T16:00:00",
+      "htf_top": 5067.39990234375,
+      "htf_bottom": 5046.2998046875,
+      "refined_top": 5067.39990234375,
+      "refined_bottom": 5046.2998046875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-02-15T20:00:00",
+      "htf_top": 5051.39990234375,
+      "htf_bottom": 4986.0,
+      "refined_top": 5051.39990234375,
+      "refined_bottom": 5026.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-20T00:00:00",
+      "htf_top": 5050.60009765625,
+      "htf_bottom": 5015.89990234375,
+      "refined_top": 5047.2998046875,
+      "refined_bottom": 5024.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-20T08:00:00",
+      "htf_top": 5089.7998046875,
+      "htf_bottom": 5005.5,
+      "refined_top": 5084.5,
+      "refined_bottom": 5005.5,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-23T00:00:00",
+      "htf_top": 5183.2998046875,
+      "htf_bottom": 5142.7998046875,
+      "refined_top": 5176.2998046875,
+      "refined_bottom": 5145.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-27T00:00:00",
+      "htf_top": 5217.5,
+      "htf_bottom": 5191.10009765625,
+      "refined_top": 5206.5,
+      "refined_bottom": 5192.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-27T04:00:00",
+      "htf_top": 5207.0,
+      "htf_bottom": 5183.2001953125,
+      "refined_top": 5199.2998046875,
+      "refined_bottom": 5188.5,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-27T08:00:00",
+      "htf_top": 5276.60009765625,
+      "htf_bottom": 5203.5,
+      "refined_top": 5259.2998046875,
+      "refined_bottom": 5203.5,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-27T12:00:00",
+      "htf_top": 5283.7998046875,
+      "htf_bottom": 5237.39990234375,
+      "refined_top": 5254.5,
+      "refined_bottom": 5237.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-02-27T16:00:00",
+      "htf_top": 5299.0,
+      "htf_bottom": 5247.89990234375,
+      "refined_top": 5299.0,
+      "refined_bottom": 5247.89990234375,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-02T16:00:00",
+      "htf_top": 5376.89990234375,
+      "htf_bottom": 5334.89990234375,
+      "refined_top": 5376.89990234375,
+      "refined_bottom": 5350.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-02T20:00:00",
+      "htf_top": 5394.2001953125,
+      "htf_bottom": 5346.7001953125,
+      "refined_top": 5387.2001953125,
+      "refined_bottom": 5372.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-03T00:00:00",
+      "htf_top": 5381.5,
+      "htf_bottom": 5292.10009765625,
+      "refined_top": 5346.10009765625,
+      "refined_bottom": 5318.5,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-12T04:00:00",
+      "htf_top": 5197.7998046875,
+      "htf_bottom": 5178.60009765625,
+      "refined_top": 5196.2001953125,
+      "refined_bottom": 5179.7998046875,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-17T20:00:00",
+      "htf_top": 5022.0,
+      "htf_bottom": 4988.5,
+      "refined_top": 5017.2998046875,
+      "refined_bottom": 5004.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-18T00:00:00",
+      "htf_top": 5020.5,
+      "htf_bottom": 4984.89990234375,
+      "refined_top": 5020.5,
+      "refined_bottom": 4999.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-18T04:00:00",
+      "htf_top": 5001.7001953125,
+      "htf_bottom": 4928.0,
+      "refined_top": 5000.0,
+      "refined_bottom": 4988.7001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-18T12:00:00",
+      "htf_top": 4904.5,
+      "htf_bottom": 4841.39990234375,
+      "refined_top": 4904.0,
+      "refined_bottom": 4888.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-18T16:00:00",
+      "htf_top": 4852.10009765625,
+      "htf_bottom": 4806.0,
+      "refined_top": 4845.0,
+      "refined_bottom": 4830.5,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-18T20:00:00",
+      "htf_top": 4868.7001953125,
+      "htf_bottom": 4833.7001953125,
+      "refined_top": 4863.39990234375,
+      "refined_bottom": 4842.60009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-19T00:00:00",
+      "htf_top": 4855.7001953125,
+      "htf_bottom": 4727.2998046875,
+      "refined_top": 4855.2001953125,
+      "refined_bottom": 4847.0,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-20T00:00:00",
+      "htf_top": 4728.0,
+      "htf_bottom": 4661.60009765625,
+      "refined_top": 4728.0,
+      "refined_bottom": 4715.5,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-20T04:00:00",
+      "htf_top": 4736.2998046875,
+      "htf_bottom": 4638.2001953125,
+      "refined_top": 4736.2998046875,
+      "refined_bottom": 4685.2001953125,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-20T16:00:00",
+      "htf_top": 4574.89990234375,
+      "htf_bottom": 4488.5,
+      "refined_top": 4574.89990234375,
+      "refined_bottom": 4488.5,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-03-22T16:00:00",
+      "htf_top": 4537.10009765625,
+      "htf_bottom": 4453.2001953125,
+      "refined_top": 4537.10009765625,
+      "refined_bottom": 4490.0,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-03-26T20:00:00",
+      "htf_top": 4440.2001953125,
+      "htf_bottom": 4370.5,
+      "refined_top": 4405.2998046875,
+      "refined_bottom": 4370.5,
+      "consumed": false
+    },
+    {
+      "type": "demand",
+      "formed_at": "2026-03-31T00:00:00",
+      "htf_top": 4610.2001953125,
+      "htf_bottom": 4571.7998046875,
+      "refined_top": 4596.7001953125,
+      "refined_bottom": 4581.39990234375,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-04-01T12:00:00",
+      "htf_top": 4821.0,
+      "htf_bottom": 4768.2001953125,
+      "refined_top": 4818.89990234375,
+      "refined_bottom": 4802.10009765625,
+      "consumed": false
+    },
+    {
+      "type": "supply",
+      "formed_at": "2026-04-01T16:00:00",
+      "htf_top": 4825.89990234375,
+      "htf_bottom": 4776.60009765625,
+      "refined_top": 4825.89990234375,
+      "refined_bottom": 4798.5,
+      "consumed": false
+    }
+  ],
+  "zones_date": "2026-04-06",
+  "last_processed_bar": "2026-04-06 07:00:00",
+  "total_trades": 30,
+  "total_pnl": 2688.73,
+  "wins": 15,
+  "losses": 15
 }

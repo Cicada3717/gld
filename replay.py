@@ -1,7 +1,7 @@
 """
-replay.py — Replay GLD Zone Refinement from March 18 2026 to today.
+replay.py — Replay GC=F Zone Refinement from March 18 2026 to today.
 Writes zone_trades.csv + zone_state.json so the dashboard shows
-correct history from the start date.
+correct gold futures history from the start date.
 
 All bugs fixed:
   - Stop checks use bar HIGH/LOW (not close)
@@ -26,7 +26,7 @@ import yfinance as yf
 from zone_refinement_backtest import detect_zones, _clean
 
 # -- Config ------------------------------------------------------------------
-TICKER      = "GLD"
+TICKER      = "GC=F"
 CAPITAL     = 10_000.0
 START_DATE  = date(2026, 3, 18)
 SLIPPAGE    = 0.50
@@ -53,6 +53,10 @@ TRADE_FIELDS = [
     "date", "time", "action", "dir", "shares", "price",
     "stop", "reason", "pnl", "balance", "signal_details",
 ]
+
+
+def _entry_fill(raw_price, direction):
+    return raw_price + SLIPPAGE if direction == "LONG" else raw_price - SLIPPAGE
 
 
 # -- Indicators --------------------------------------------------------------
@@ -127,6 +131,7 @@ def replay_zone(df1h, zones):
     total_pnl    = 0.0
     replay_start = pd.Timestamp(START_DATE.strftime("%Y-%m-%d"))
     zone_list    = [dict(z) for z in zones]
+    last_processed_bar = None
 
     for ts, row in df1h[df1h.index >= replay_start].iterrows():
         dt = ts.to_pydatetime()
@@ -135,6 +140,8 @@ def replay_zone(df1h, zones):
             continue
         if dt.weekday() == 6 and dt.hour < 18:
             continue
+
+        last_processed_bar = ts
 
         date_str = ts.strftime("%Y-%m-%d")
         time_str = ts.strftime("%H:%M")
@@ -252,17 +259,26 @@ def replay_zone(df1h, zones):
                           int(balance * p["leverage"] / price))
                 if qty <= 0: continue
 
-                position = {"dir": "LONG", "shares": qty, "entry": price,
-                            "stop": stop, "target": target, "zone_type": "demand"}
+                entry_fill = _entry_fill(price, "LONG")
+                position = {
+                    "dir": "LONG",
+                    "shares": qty,
+                    "entry": entry_fill,
+                    "entry_trigger": price,
+                    "stop": stop,
+                    "target": target,
+                    "zone_type": "demand",
+                    "initial_risk": abs(entry_fill - stop),
+                }
                 zone["consumed"] = True; zone["consumed_date"] = date_str
                 trades.append({
                     "date": date_str, "time": time_str,
                     "action": "BUY", "dir": "LONG", "shares": qty,
-                    "price": round(price, 3), "stop": round(stop, 3),
+                    "price": round(entry_fill, 3), "stop": round(stop, 3),
                     "reason": "ZONE", "pnl": "",
                     "balance": round(balance, 2),
                     "signal_details": (
-                        f"zone=demand htf=[{zbot:.2f},{ztop:.2f}] "
+                        f"trigger={price:.3f} zone=demand htf=[{zbot:.2f},{ztop:.2f}] "
                         f"refined=[{rbot:.3f},{rtop:.3f}] rr={(target-price)/risk:.1f}"
                     ),
                 })
@@ -287,17 +303,26 @@ def replay_zone(df1h, zones):
                           int(balance * p["leverage"] / price))
                 if qty <= 0: continue
 
-                position = {"dir": "SHORT", "shares": qty, "entry": price,
-                            "stop": stop, "target": target, "zone_type": "supply"}
+                entry_fill = _entry_fill(price, "SHORT")
+                position = {
+                    "dir": "SHORT",
+                    "shares": qty,
+                    "entry": entry_fill,
+                    "entry_trigger": price,
+                    "stop": stop,
+                    "target": target,
+                    "zone_type": "supply",
+                    "initial_risk": abs(entry_fill - stop),
+                }
                 zone["consumed"] = True; zone["consumed_date"] = date_str
                 trades.append({
                     "date": date_str, "time": time_str,
                     "action": "SELL", "dir": "SHORT", "shares": qty,
-                    "price": round(price, 3), "stop": round(stop, 3),
+                    "price": round(entry_fill, 3), "stop": round(stop, 3),
                     "reason": "ZONE", "pnl": "",
                     "balance": round(balance, 2),
                     "signal_details": (
-                        f"zone=supply htf=[{zbot:.2f},{ztop:.2f}] "
+                        f"trigger={price:.3f} zone=supply htf=[{zbot:.2f},{ztop:.2f}] "
                         f"refined=[{rbot:.3f},{rtop:.3f}] rr={(price-target)/risk:.1f}"
                     ),
                 })
@@ -307,7 +332,7 @@ def replay_zone(df1h, zones):
     n = len(closed)
     roi = (balance - CAPITAL) / CAPITAL * 100
     wr  = wins / n * 100 if n else 0
-    print(f"  GLD Zone Replay: {n} trades | W:{wins} L:{losses} | "
+    print(f"  GC=F Zone Replay: {n} trades | W:{wins} L:{losses} | "
           f"WR:{wr:.1f}% | ROI:{roi:+.2f}% | Balance:${balance:,.2f}")
 
     live_pos = None
@@ -316,11 +341,12 @@ def replay_zone(df1h, zones):
             "dir":          position["dir"],
             "shares":       position["shares"],
             "entry":        position["entry"],
+            "entry_trigger": position.get("entry_trigger"),
             "stop":         position["stop"],
             "target":       position["target"],
             "zone_type":    position.get("zone_type", "?"),
-            "initial_risk": abs(position["entry"] - position["stop"]),
-            "entry_time":   trades[-1]["time"] if trades else "00:00",
+            "initial_risk": position.get("initial_risk", abs(position["entry"] - position["stop"])),
+            "entry_time":   f"{trades[-1]['date']} {trades[-1]['time']}" if trades else "1970-01-01 00:00",
         }
         print(f"  Open position carried forward: {live_pos['dir']} "
               f"{live_pos['shares']}sh @ ${live_pos['entry']:.3f}")
@@ -328,6 +354,7 @@ def replay_zone(df1h, zones):
     state = {
         "ticker": TICKER, "capital": CAPITAL, "balance": round(balance, 2),
         "position": live_pos, "zones": [], "zones_date": None,
+        "last_processed_bar": str(last_processed_bar) if last_processed_bar is not None else None,
         "total_trades": n, "total_pnl": round(total_pnl, 2),
         "wins": wins, "losses": losses,
     }
@@ -338,11 +365,11 @@ def replay_zone(df1h, zones):
 
 if __name__ == "__main__":
     print(f"\n{'='*60}")
-    print(f"  GLD Zone Replay  |  {START_DATE} to today")
+    print(f"  GC=F Zone Replay  |  {START_DATE} to today")
     print(f"  Capital: ${CAPITAL:,.0f}  |  Params: optimized")
     print(f"{'='*60}\n")
 
-    print("[1/2] Fetching GLD 1H data (6 months for zone warmup)...")
+    print("[1/2] Fetching GC=F 1H data (6 months for zone warmup)...")
     end   = pd.Timestamp.now()
     start = end - pd.DateOffset(months=6)
     df1h  = _clean(yf.download(TICKER,

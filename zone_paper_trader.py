@@ -1,14 +1,14 @@
 """
-zone_paper_trader.py — Zone Refinement Live Paper Trader (GLD, 1H bars)
-=======================================================================
-Watches GLD 1H bars in real-time during market hours.
+zone_paper_trader.py — Zone Refinement Live Paper Trader (GC=F, 1H bars)
+=========================================================================
+Watches gold futures 1H bars in real-time during the 24/5 session.
 Detects 4H supply/demand zones at startup; re-scans once per day.
 Enters on refined-zone touches, manages stop/target each hour.
-Logs to zone_trades.csv / zone_state.json (identical format to paper_trades.csv).
+Logs to zone_trades.csv / zone_state.json.
 
 Usage:
-  python zone_paper_trader.py              # default $500 capital
-  python zone_paper_trader.py --capital 1000
+  python zone_paper_trader.py
+  python zone_paper_trader.py --ticker GC=F --capital 10000
 """
 
 import argparse
@@ -190,6 +190,10 @@ def log_trade(row):
         w.writerow(row)
 
 
+def _entry_fill(raw_price, direction):
+    return raw_price + SLIPPAGE if direction == "LONG" else raw_price - SLIPPAGE
+
+
 # ── Position management ───────────────────────────────────────────────────────
 
 def _qty(balance, price, risk):
@@ -243,7 +247,7 @@ def _close_position(state, exit_price_raw, reason):
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
-def run(ticker="GLD", capital=500.0):
+def run(ticker="GC=F", capital=500.0):
     print(f"\n{'='*70}")
     print(f"  Zone Refinement Paper Trader")
     print(f"  Ticker: {ticker}  |  Capital: ${capital:,.0f}  |  Timeframe: 1H bars")
@@ -266,6 +270,7 @@ def run(ticker="GLD", capital=500.0):
             "position":      None,
             "zones":         [],
             "zones_date":    None,   # date zones were last computed
+            "last_processed_bar": None,
             "total_trades":  0,
             "total_pnl":     0.0,
             "wins":          0,
@@ -273,8 +278,6 @@ def run(ticker="GLD", capital=500.0):
         }
         save_state(state)
         print(f"  Starting fresh — ${capital:,.0f}")
-
-    last_bar_time = None
 
     while True:
         try:
@@ -310,13 +313,18 @@ def run(ticker="GLD", capital=500.0):
                                datetime.fromisoformat(consumed_date).date()).days
                         if age > 7:
                             continue  # reset old consumed zones
+                    else:
+                        consumed_date = state.get("zones_date") or date_str
                     key = (z["type"], round(z["htf_top"], 3), round(z["htf_bottom"], 3))
-                    old_consumed[key] = True
+                    old_consumed[key] = consumed_date
 
                 new_zones = build_zones(df_1h)
                 for z in new_zones:
                     key = (z["type"], round(z["htf_top"], 3), round(z["htf_bottom"], 3))
-                    z["consumed"] = old_consumed.get(key, False)
+                    preserved_date = old_consumed.get(key)
+                    z["consumed"] = preserved_date is not None
+                    if preserved_date is not None:
+                        z["consumed_date"] = preserved_date
 
                 state["zones"]      = new_zones
                 state["zones_date"] = date_str
@@ -333,220 +341,235 @@ def run(ticker="GLD", capital=500.0):
                 continue
 
             latest_time = df_1h.index[-1]
-            if last_bar_time and latest_time <= last_bar_time:
-                time.sleep(120)   # wait for next 1H bar
-                continue
-            last_bar_time = latest_time
+            latest_close = float(df_1h["Close"].iloc[-1])
+            latest_high = float(df_1h["High"].iloc[-1])
+            latest_low = float(df_1h["Low"].iloc[-1])
+            print(f"  [{now.strftime('%H:%M')}] {ticker} ${latest_close:.3f}  (H:{latest_high:.3f} L:{latest_low:.3f})")
 
-            closes = df_1h["Close"].tolist()
-            highs  = df_1h["High"].tolist()
-            lows   = df_1h["Low"].tolist()
-            price  = closes[-1]
-            high   = highs[-1]
-            low    = lows[-1]
-            ts     = df_1h.index[-1].to_pydatetime()
+            last_processed_raw = state.get("last_processed_bar")
+            if last_processed_raw:
+                last_processed = pd.Timestamp(last_processed_raw)
+            else:
+                last_processed = df_1h.index[-2] if len(df_1h) > 1 else latest_time
 
-            print(f"  [{now.strftime('%H:%M')}] Bar closed: ${price:.3f}  "
-                  f"(H:{high:.3f} L:{low:.3f})")
-
-            # ── Manage open position ──────────────────────────────────
-            if state["position"]:
-                pos = state["position"]
-
-                # Trailing stop — OPTIMIZED params from grid search:
-                # Activate at 1.5R profit (was 1.0R), trail by 0.3R (was 0.5R)
-                initial_risk   = pos.get("initial_risk", abs(pos["entry"] - pos["stop"]))
-                pos["initial_risk"] = initial_risk
-                trail_activate = initial_risk * PARAMS["trail_activation_r"]
-                trail_dist     = initial_risk * PARAMS["trail_distance_r"]
-
-                if pos["dir"] == "LONG":
-                    best = pos.get("best_price", pos["entry"])
-                    if high > best:
-                        pos["best_price"] = high
-                        best = high
-                    if best >= pos["entry"] + trail_activate:
-                        trail_stop = best - trail_dist
-                        if trail_stop > pos["stop"]:
-                            print(f"      Trail stop moved: ${pos['stop']:.3f} -> ${trail_stop:.3f}")
-                            pos["stop"] = trail_stop
-                            save_state(state)
-                else:  # SHORT
-                    best = pos.get("best_price", pos["entry"])
-                    if low < best:
-                        pos["best_price"] = low
-                        best = low
-                    if best <= pos["entry"] - trail_activate:
-                        trail_stop = best + trail_dist
-                        if trail_stop < pos["stop"]:
-                            print(f"      Trail stop moved: ${pos['stop']:.3f} -> ${trail_stop:.3f}")
-                            pos["stop"] = trail_stop
-                            save_state(state)
-
-                hit_stop   = (pos["dir"] == "LONG"  and low  <= pos["stop"]) or \
-                             (pos["dir"] == "SHORT" and high >= pos["stop"])
-                hit_target = (pos["dir"] == "LONG"  and high >= pos["target"]) or \
-                             (pos["dir"] == "SHORT" and low  <= pos["target"])
-                trail_active = pos.get("best_price") is not None and (
-                    (pos["dir"] == "LONG"  and pos.get("best_price", pos["entry"]) >= pos["entry"] + trail_activate) or
-                    (pos["dir"] == "SHORT" and pos.get("best_price", pos["entry"]) <= pos["entry"] - trail_activate)
-                )
-                if hit_stop:
-                    _close_position(state, pos["stop"], "TRAIL_STOP" if trail_active else "STOP")
-                elif hit_target:
-                    _close_position(state, pos["target"], "TARGET")
-                else:
-                    unreal = ((price - pos["entry"]) * pos["shares"]
-                              if pos["dir"] == "LONG"
-                              else (pos["entry"] - price) * pos["shares"])
-                    print(f"      {pos['dir']} {pos['shares']}sh @ ${pos['entry']:.3f}  "
-                          f"Stop:${pos['stop']:.3f}{'(T)' if trail_active else ''}  "
-                          f"Tgt:${pos['target']:.3f}  Unreal:${unreal:+.2f}")
+            pending = df_1h.index[df_1h.index > last_processed]
+            if len(pending) == 0:
                 time.sleep(120)
                 continue
 
-            # ── Zone scan ─────────────────────────────────────────────
-            p = PARAMS
-            bull = _bos_bullish(closes, p["bos_ema"], p["bos_slope_bars"])
-            bear = _bos_bearish(closes, p["bos_ema"], p["bos_slope_bars"])
-
-            # 20-bar trend filter — only trade WITH momentum
-            trend_20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
-
-            entered = False
-            for zone in state["zones"]:
-                if zone.get("consumed"):
-                    continue
-                # Zone must have formed before this bar
-                formed = zone["formed_at"]
-                if not isinstance(formed, datetime):
-                    formed = datetime.fromisoformat(str(formed))
-                if formed >= ts:
+            for current_ts in pending:
+                hist = df_1h.loc[:current_ts]
+                if len(hist) < 50:
                     continue
 
-                ztop = zone["htf_top"]
-                zbot = zone["htf_bottom"]
-                rtop = zone["refined_top"]
-                rbot = zone["refined_bottom"]
-                buf  = p["stop_buffer"]
+                closes = hist["Close"].tolist()
+                highs  = hist["High"].tolist()
+                lows   = hist["Low"].tolist()
+                price  = float(hist["Close"].iloc[-1])
+                high   = float(hist["High"].iloc[-1])
+                low    = float(hist["Low"].iloc[-1])
+                ts     = pd.Timestamp(current_ts).to_pydatetime()
+                bar_date_str = pd.Timestamp(current_ts).strftime("%Y-%m-%d")
+                bar_time_str = pd.Timestamp(current_ts).strftime("%H:%M")
 
-                if zone["type"] == "demand":
-                    if not (zbot <= price <= ztop):
-                        continue
-                    if not bull:
-                        continue
-                    if low > rtop:
-                        continue   # hasn't touched refined zone
-                    if price < rbot:
-                        continue   # blown through
-                    if trend_20 < 0:
-                        continue   # trend filter: skip LONG in downtrend
-                    stop   = rbot * (1 - buf)
-                    risk   = price - stop
-                    if risk <= 0:
-                        continue
-                    target = _prior_high(highs, p["target_skip"], p["target_lookback"])
-                    if target <= price:
-                        # At ATH no prior swing high exists above price — project
-                        # the minimum-R:R target forward instead of skipping.
-                        target = price + risk * p["min_rr"]
-                    rr = (target - price) / risk
-                    if rr < p["min_rr"]:
-                        continue
-                    qty = _qty(state["balance"], price, risk)
-                    if qty <= 0:
-                        continue
+                print(f"      Processing {bar_date_str} {bar_time_str}  Close:${price:.3f}  H:{high:.3f} L:{low:.3f}")
 
-                    state["position"] = {
-                        "dir":       "LONG",
-                        "shares":    qty,
-                        "entry":     price,
-                        "stop":      stop,
-                        "target":    target,
-                        "zone_type": "demand",
-                        "entry_time": now.strftime("%H:%M"),
-                    }
-                    state["traded_today"] = True
-                    zone["consumed"] = True
-                    zone["consumed_date"] = date_str
-                    save_state(state)
+                # ── Manage open position ──────────────────────────────
+                if state["position"]:
+                    pos = state["position"]
 
-                    print(f"\n  *** LONG {qty}sh @ ${price:.3f} (demand zone) ***")
-                    print(f"      Stop:${stop:.3f}  Target:${target:.3f}  R:R:{rr:.1f}x")
+                    initial_risk   = pos.get("initial_risk", abs(pos["entry"] - pos["stop"]))
+                    pos["initial_risk"] = initial_risk
+                    trail_activate = initial_risk * PARAMS["trail_activation_r"]
+                    trail_dist     = initial_risk * PARAMS["trail_distance_r"]
 
-                    log_trade({
-                        "date": date_str, "time": now.strftime("%H:%M"),
-                        "action": "BUY", "dir": "LONG", "shares": qty,
-                        "price": round(price, 3), "stop": round(stop, 3),
-                        "reason": "ZONE", "pnl": "",
-                        "balance": round(state["balance"], 2),
-                        "signal_details": (
-                            f"zone=demand htf=[{zbot:.2f},{ztop:.2f}] "
-                            f"refined=[{rbot:.3f},{rtop:.3f}] rr={rr:.1f}"
-                        ),
-                    })
-                    entered = True
-                    break
+                    if pos["dir"] == "LONG":
+                        best = pos.get("best_price", pos["entry"])
+                        if high > best:
+                            pos["best_price"] = high
+                            best = high
+                        if best >= pos["entry"] + trail_activate:
+                            trail_stop = best - trail_dist
+                            if trail_stop > pos["stop"]:
+                                print(f"      Trail stop moved: ${pos['stop']:.3f} -> ${trail_stop:.3f}")
+                                pos["stop"] = trail_stop
+                                save_state(state)
+                    else:
+                        best = pos.get("best_price", pos["entry"])
+                        if low < best:
+                            pos["best_price"] = low
+                            best = low
+                        if best <= pos["entry"] - trail_activate:
+                            trail_stop = best + trail_dist
+                            if trail_stop < pos["stop"]:
+                                print(f"      Trail stop moved: ${pos['stop']:.3f} -> ${trail_stop:.3f}")
+                                pos["stop"] = trail_stop
+                                save_state(state)
 
-                elif zone["type"] == "supply":
-                    if not (zbot <= price <= ztop):
-                        continue
-                    if not bear:
-                        continue
-                    if high < rbot:
-                        continue
-                    if price > rtop:
-                        continue
-                    if trend_20 > 0:
-                        continue   # trend filter: skip SHORT in uptrend
-                    stop   = rtop * (1 + buf)
-                    risk   = stop - price
-                    if risk <= 0:
-                        continue
-                    target = _prior_low(lows, p["target_skip"], p["target_lookback"])
-                    if target >= price:
-                        # At ATL no prior swing low exists below price — project
-                        # the minimum-R:R target forward instead of skipping.
-                        target = price - risk * p["min_rr"]
-                    rr = (price - target) / risk
-                    if rr < p["min_rr"]:
-                        continue
-                    qty = _qty(state["balance"], price, risk)
-                    if qty <= 0:
-                        continue
+                    hit_stop   = (pos["dir"] == "LONG"  and low  <= pos["stop"]) or \
+                                 (pos["dir"] == "SHORT" and high >= pos["stop"])
+                    hit_target = (pos["dir"] == "LONG"  and high >= pos["target"]) or \
+                                 (pos["dir"] == "SHORT" and low  <= pos["target"])
+                    trail_active = pos.get("best_price") is not None and (
+                        (pos["dir"] == "LONG"  and pos.get("best_price", pos["entry"]) >= pos["entry"] + trail_activate) or
+                        (pos["dir"] == "SHORT" and pos.get("best_price", pos["entry"]) <= pos["entry"] - trail_activate)
+                    )
+                    if hit_stop:
+                        _close_position(state, pos["stop"], "TRAIL_STOP" if trail_active else "STOP")
+                    elif hit_target:
+                        _close_position(state, pos["target"], "TARGET")
+                    else:
+                        unreal = ((price - pos["entry"]) * pos["shares"]
+                                  if pos["dir"] == "LONG"
+                                  else (pos["entry"] - price) * pos["shares"])
+                        print(f"      {pos['dir']} {pos['shares']}sh @ ${pos['entry']:.3f}  "
+                              f"Stop:${pos['stop']:.3f}{'(T)' if trail_active else ''}  "
+                              f"Tgt:${pos['target']:.3f}  Unreal:${unreal:+.2f}")
 
-                    state["position"] = {
-                        "dir":       "SHORT",
-                        "shares":    qty,
-                        "entry":     price,
-                        "stop":      stop,
-                        "target":    target,
-                        "zone_type": "supply",
-                        "entry_time": now.strftime("%H:%M"),
-                    }
-                    zone["consumed"] = True
-                    zone["consumed_date"] = date_str
-                    save_state(state)
+                # ── Zone scan ─────────────────────────────────────────
+                if not state["position"]:
+                    p = PARAMS
+                    bull = _bos_bullish(closes, p["bos_ema"], p["bos_slope_bars"])
+                    bear = _bos_bearish(closes, p["bos_ema"], p["bos_slope_bars"])
+                    trend_20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
 
-                    print(f"\n  *** SHORT {qty}sh @ ${price:.3f} (supply zone) ***")
-                    print(f"      Stop:${stop:.3f}  Target:${target:.3f}  R:R:{rr:.1f}x")
+                    entered = False
+                    for zone in state["zones"]:
+                        if zone.get("consumed"):
+                            continue
+                        formed = zone["formed_at"]
+                        if not isinstance(formed, datetime):
+                            formed = datetime.fromisoformat(str(formed))
+                        if formed >= ts:
+                            continue
 
-                    log_trade({
-                        "date": date_str, "time": now.strftime("%H:%M"),
-                        "action": "SELL", "dir": "SHORT", "shares": qty,
-                        "price": round(price, 3), "stop": round(stop, 3),
-                        "reason": "ZONE", "pnl": "",
-                        "balance": round(state["balance"], 2),
-                        "signal_details": (
-                            f"zone=supply htf=[{zbot:.2f},{ztop:.2f}] "
-                            f"refined=[{rbot:.3f},{rtop:.3f}] rr={rr:.1f}"
-                        ),
-                    })
-                    entered = True
-                    break
+                        ztop = zone["htf_top"]
+                        zbot = zone["htf_bottom"]
+                        rtop = zone["refined_top"]
+                        rbot = zone["refined_bottom"]
+                        buf  = p["stop_buffer"]
 
-            if not entered:
-                print(f"      Flat — no zone signal")
+                        if zone["type"] == "demand":
+                            if not (zbot <= price <= ztop):
+                                continue
+                            if not bull:
+                                continue
+                            if low > rtop:
+                                continue
+                            if price < rbot:
+                                continue
+                            if trend_20 < 0:
+                                continue
+                            stop   = rbot * (1 - buf)
+                            risk   = price - stop
+                            if risk <= 0:
+                                continue
+                            target = _prior_high(highs, p["target_skip"], p["target_lookback"])
+                            if target <= price:
+                                target = price + risk * p["min_rr"]
+                            rr = (target - price) / risk
+                            if rr < p["min_rr"]:
+                                continue
+                            qty = _qty(state["balance"], price, risk)
+                            if qty <= 0:
+                                continue
+
+                            entry_fill = _entry_fill(price, "LONG")
+                            state["position"] = {
+                                "dir":       "LONG",
+                                "shares":    qty,
+                                "entry":     entry_fill,
+                                "entry_trigger": price,
+                                "stop":      stop,
+                                "target":    target,
+                                "zone_type": "demand",
+                                "entry_time": f"{bar_date_str} {bar_time_str}",
+                                "initial_risk": abs(entry_fill - stop),
+                            }
+                            zone["consumed"] = True
+                            zone["consumed_date"] = bar_date_str
+                            save_state(state)
+
+                            print(f"\n  *** LONG {qty}sh @ ${entry_fill:.3f} (trigger:${price:.3f}, demand zone) ***")
+                            print(f"      Stop:${stop:.3f}  Target:${target:.3f}  R:R:{rr:.1f}x")
+
+                            log_trade({
+                                "date": bar_date_str, "time": bar_time_str,
+                                "action": "BUY", "dir": "LONG", "shares": qty,
+                                "price": round(entry_fill, 3), "stop": round(stop, 3),
+                                "reason": "ZONE", "pnl": "",
+                                "balance": round(state["balance"], 2),
+                                "signal_details": (
+                                    f"trigger={price:.3f} zone=demand htf=[{zbot:.2f},{ztop:.2f}] "
+                                    f"refined=[{rbot:.3f},{rtop:.3f}] rr={rr:.1f}"
+                                ),
+                            })
+                            entered = True
+                            break
+
+                        elif zone["type"] == "supply":
+                            if not (zbot <= price <= ztop):
+                                continue
+                            if not bear:
+                                continue
+                            if high < rbot:
+                                continue
+                            if price > rtop:
+                                continue
+                            if trend_20 > 0:
+                                continue
+                            stop   = rtop * (1 + buf)
+                            risk   = stop - price
+                            if risk <= 0:
+                                continue
+                            target = _prior_low(lows, p["target_skip"], p["target_lookback"])
+                            if target >= price:
+                                target = price - risk * p["min_rr"]
+                            rr = (price - target) / risk
+                            if rr < p["min_rr"]:
+                                continue
+                            qty = _qty(state["balance"], price, risk)
+                            if qty <= 0:
+                                continue
+
+                            entry_fill = _entry_fill(price, "SHORT")
+                            state["position"] = {
+                                "dir":       "SHORT",
+                                "shares":    qty,
+                                "entry":     entry_fill,
+                                "entry_trigger": price,
+                                "stop":      stop,
+                                "target":    target,
+                                "zone_type": "supply",
+                                "entry_time": f"{bar_date_str} {bar_time_str}",
+                                "initial_risk": abs(entry_fill - stop),
+                            }
+                            zone["consumed"] = True
+                            zone["consumed_date"] = bar_date_str
+                            save_state(state)
+
+                            print(f"\n  *** SHORT {qty}sh @ ${entry_fill:.3f} (trigger:${price:.3f}, supply zone) ***")
+                            print(f"      Stop:${stop:.3f}  Target:${target:.3f}  R:R:{rr:.1f}x")
+
+                            log_trade({
+                                "date": bar_date_str, "time": bar_time_str,
+                                "action": "SELL", "dir": "SHORT", "shares": qty,
+                                "price": round(entry_fill, 3), "stop": round(stop, 3),
+                                "reason": "ZONE", "pnl": "",
+                                "balance": round(state["balance"], 2),
+                                "signal_details": (
+                                    f"trigger={price:.3f} zone=supply htf=[{zbot:.2f},{ztop:.2f}] "
+                                    f"refined=[{rbot:.3f},{rtop:.3f}] rr={rr:.1f}"
+                                ),
+                            })
+                            entered = True
+                            break
+
+                    if not entered:
+                        print("      Flat — no zone signal")
+
+                state["last_processed_bar"] = str(current_ts)
+                save_state(state)
 
             time.sleep(120)
 
@@ -564,7 +587,7 @@ def run(ticker="GLD", capital=500.0):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ticker",  default="GLD")
+    ap.add_argument("--ticker",  default="GC=F")
     ap.add_argument("--capital", type=float, default=500.0)
     args = ap.parse_args()
     run(ticker=args.ticker, capital=args.capital)
