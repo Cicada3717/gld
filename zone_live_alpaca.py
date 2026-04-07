@@ -1,8 +1,14 @@
 """
 zone_live_alpaca.py  —  Zone Refinement LIVE Trader via Alpaca API
 ===================================================================
-Signal  : GC=F (gold futures 1H bars via yfinance)
-Execution: GLD ETF via Alpaca (paper by default → flip ALPACA_PAPER=false for live)
+Signal  : GLD 1H bars via Alpaca data API  (real-time, zero delay)
+Execution: GLD ETF orders via Alpaca broker API
+
+Why Alpaca data instead of yfinance?
+  yfinance free tier is 15-min delayed.  When the bot detects a zone touch
+  at price $280 (delayed), the real market is already at $285 — entry,
+  stop, and R:R are all wrong before the trade even starts.
+  Alpaca's IEX data feed is real-time and free with any Alpaca account.
 
 Setup
 -----
@@ -31,7 +37,6 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
 
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import (
@@ -41,6 +46,9 @@ from alpaca.trading.requests import (
     GetOrdersRequest,
 )
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass, QueryOrderStatus
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest, StockLatestTradeRequest
+from alpaca.data.timeframe import TimeFrame
 
 from zone_refinement_backtest import detect_zones, _clean
 
@@ -53,10 +61,7 @@ PAPER             = os.environ.get("ALPACA_PAPER",       "true").lower() == "tru
 CAPITAL           = float(os.environ.get("ALPACA_CAPITAL",      "1000"))
 ALLOW_SHORT       = os.environ.get("ALPACA_ALLOW_SHORT", "false").lower() == "true"
 
-# Signal source  (yfinance — gold futures for zone detection)
-SIGNAL_TICKER = "GC=F"
-
-# Execution ticker on Alpaca
+# Single ticker: signal detection AND execution both on GLD via Alpaca (real-time)
 TRADE_TICKER  = "GLD"
 
 ET = ZoneInfo("America/New_York")
@@ -147,20 +152,38 @@ def _atr14(highs, lows, closes, period=14):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  DATA
+#  DATA  —  Alpaca real-time bars (replaces yfinance entirely for live feed)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fetch_signal_data(months=6):
-    """Fetch GC=F 1H bars for zone detection & signal generation."""
-    end   = pd.Timestamp.now()
-    start = end - pd.DateOffset(months=months)
-    df = _clean(yf.download(
-        SIGNAL_TICKER,
-        start=start.strftime("%Y-%m-%d"),
-        end=end.strftime("%Y-%m-%d"),
-        interval="1h",
-        progress=False,
-    ))
+def _data_client():
+    """Alpaca market-data client (free IEX feed — real-time US stocks)."""
+    return StockHistoricalDataClient(ALPACA_API_KEY, ALPACA_SECRET_KEY)
+
+
+def fetch_gld_bars(months=6):
+    """
+    Fetch GLD 1H bars from Alpaca data API — real-time, no 15-min delay.
+    Returns a clean DataFrame with columns Open/High/Low/Close/Volume
+    and a UTC DatetimeIndex, ready for zone detection.
+    """
+    start = pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=months)
+    req   = StockBarsRequest(
+        symbol_or_symbols=TRADE_TICKER,
+        timeframe=TimeFrame.Hour,
+        start=start,
+        feed="iex",           # free real-time feed included with all Alpaca accounts
+    )
+    bars = _data_client().get_stock_bars(req)
+    df   = bars.df
+
+    # Alpaca returns MultiIndex (symbol, timestamp) — drop symbol level
+    if isinstance(df.index, pd.MultiIndex):
+        df = df.loc[TRADE_TICKER]
+
+    df = df.rename(columns={"open": "Open", "high": "High",
+                             "low":  "Low",  "close": "Close", "volume": "Volume"})
+    df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+    df.index = pd.to_datetime(df.index, utc=True)
     return df
 
 
@@ -174,14 +197,11 @@ def build_zones(df_1h):
                         strength_mult=PARAMS["strength_mult"])
 
 
-def get_gld_price(client):
-    """Get latest GLD price from Alpaca (latest trade)."""
+def get_realtime_price():
+    """Current GLD trade price from Alpaca (millisecond-fresh)."""
     try:
-        from alpaca.data.historical import StockHistoricalDataClient
-        from alpaca.data.requests import StockLatestTradeRequest
-        data_client = StockHistoricalDataClient(ALPACA_API_KEY, ALPACA_SECRET_KEY)
-        req = StockLatestTradeRequest(symbol_or_symbols=TRADE_TICKER)
-        trade = data_client.get_stock_latest_trade(req)
+        req   = StockLatestTradeRequest(symbol_or_symbols=TRADE_TICKER)
+        trade = _data_client().get_stock_latest_trade(req)
         return float(trade[TRADE_TICKER].price)
     except Exception:
         return None
@@ -429,8 +449,8 @@ def run(capital=CAPITAL, paper=PAPER):
 
             # ── Refresh zones once per day ────────────────────────────
             if state["zones_date"] != date_str:
-                print(f"  [{now.strftime('%H:%M')}] Refreshing zones ({SIGNAL_TICKER}, 6 months 1H)...")
-                df_1h = fetch_signal_data(months=6)
+                print(f"  [{now.strftime('%H:%M')}] Refreshing zones (GLD Alpaca bars, 6 months 1H)...")
+                df_1h = fetch_gld_bars(months=6)
                 if df_1h.empty:
                     print("  No data — retry in 60s")
                     time.sleep(60)
@@ -463,10 +483,8 @@ def run(capital=CAPITAL, paper=PAPER):
                 print(f"  Zones loaded: {len(new_zones)} ({d} demand, {s} supply)")
                 save_state(state)
 
-            # ── Fetch latest 1H bars (signal) ─────────────────────────
-            df_1h = _clean(yf.download(
-                SIGNAL_TICKER, period="59d", interval="1h", progress=False
-            ))
+            # ── Fetch latest GLD 1H bars — real-time via Alpaca ──────
+            df_1h = fetch_gld_bars(months=2)
             if df_1h.empty:
                 time.sleep(60)
                 continue
@@ -508,9 +526,8 @@ def run(capital=CAPITAL, paper=PAPER):
                 state["trail_activated"] = False
                 save_state(state)
 
-            latest_ts    = df_1h.index[-1]
             latest_close = float(df_1h["Close"].iloc[-1])
-            print(f"  [{now.strftime('%H:%M ET')}] {SIGNAL_TICKER} ${latest_close:.2f}  "
+            print(f"  [{now.strftime('%H:%M ET')}] GLD ${latest_close:.2f}  "
                   f"{'[IN POSITION]' if state['position'] else '[FLAT]'}")
 
             last_raw = state.get("last_processed_bar")
@@ -644,21 +661,21 @@ def run(capital=CAPITAL, paper=PAPER):
                         rr = (target - price) / risk
                         if rr < p["min_rr"]:                   continue
 
-                        # Scale stop/target from GC=F price to GLD price
-                        # GLD tracks GC=F / ~10, so ratio: gld_stop ≈ stop * (gld_price/gc_price)
-                        gld_px = get_gld_price(client)
-                        if not gld_px:
-                            print("  Could not fetch GLD price — skipping entry")
+                        # ── Real-time price check (no ratio needed — zones in GLD space) ──
+                        # Bar close (price) is the last CLOSED 1H candle.
+                        # gld_now is the actual current market price from Alpaca (millisecond fresh).
+                        # If price has drifted > 0.3% since bar close the signal is stale → skip.
+                        gld_now = get_realtime_price()
+                        if not gld_now:
+                            print("  Could not fetch real-time GLD price — skipping entry")
                             break
-                        ratio      = gld_px / price
-                        gld_stop   = stop   * ratio
-                        gld_target = target * ratio
+                        drift = abs(gld_now - price) / price
+                        if drift > 0.003:
+                            print(f"    STALE: bar close ${price:.2f} vs live ${gld_now:.2f} "
+                                  f"({drift*100:.2f}% drift) — skip")
+                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
 
-                        qty = calc_qty(
-                            capital,      # use configured capital, not Alpaca's $100k paper balance
-                            gld_px,
-                            (gld_px - gld_stop),
-                        )
+                        qty = calc_qty(capital, gld_now, (gld_now - stop))
                         if qty < 0.01:
                             print(f"    Qty too small ({qty:.4f} shares) — skip")
                             continue
@@ -679,8 +696,8 @@ def run(capital=CAPITAL, paper=PAPER):
                             zone["consumed"] = True; zone["consumed_date"] = bdate; break
                         # ─────────────────────────────────────────────
 
-                        print(f"\n  *** SIGNAL: LONG GLD @ ~${gld_px:.2f}  stop=${gld_stop:.2f}  target=${gld_target:.2f}  R:R={rr:.1f} ***")
-                        order = submit_bracket(client, "LONG", qty, gld_stop, gld_target)
+                        print(f"\n  *** SIGNAL: LONG GLD @ ~${gld_now:.2f}  stop=${stop:.2f}  target=${target:.2f}  R:R={rr:.1f} ***")
+                        order = submit_bracket(client, "LONG", qty, stop, target)
 
                         # Find the stop leg order ID from the bracket legs
                         stop_oid = None
@@ -695,11 +712,11 @@ def run(capital=CAPITAL, paper=PAPER):
                         state["position"] = {
                             "dir":          "LONG",
                             "qty":          qty,
-                            "entry":        gld_px,
-                            "stop":         gld_stop,
-                            "target":       gld_target,
-                            "initial_risk": gld_px - gld_stop,
-                            "best_price":   gld_px,
+                            "entry":        gld_now,
+                            "stop":         stop,
+                            "target":       target,
+                            "initial_risk": gld_now - stop,
+                            "best_price":   gld_now,
                             "zone_type":    "demand",
                             "entry_time":   f"{bdate} {btime}",
                         }
@@ -720,7 +737,7 @@ def run(capital=CAPITAL, paper=PAPER):
                         entered = True
                         break
 
-                    # ── SHORT (supply zone) ───────────────────────────
+                    # ── SHORT (supply zone) ──────────────────────────────
                     elif zone["type"] == "supply" and ALLOW_SHORT:
                         if not (zbot <= price <= ztop):       continue
                         if not bear:                           continue
@@ -738,18 +755,17 @@ def run(capital=CAPITAL, paper=PAPER):
                         rr = (price - target) / risk
                         if rr < p["min_rr"]:                   continue
 
-                        gld_px = get_gld_price(client)
-                        if not gld_px:
+                        # ── Real-time price check ──────────────────────
+                        gld_now = get_realtime_price()
+                        if not gld_now:
                             break
-                        ratio      = gld_px / price
-                        gld_stop   = stop   * ratio
-                        gld_target = target * ratio
+                        drift = abs(gld_now - price) / price
+                        if drift > 0.003:
+                            print(f"    STALE: bar close ${price:.2f} vs live ${gld_now:.2f} "
+                                  f"({drift*100:.2f}% drift) — skip")
+                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
 
-                        qty = calc_qty(
-                            capital,      # use configured capital, not Alpaca's $100k paper balance
-                            gld_px,
-                            (gld_stop - gld_px),
-                        )
+                        qty = calc_qty(capital, gld_now, (stop - gld_now))
                         if qty < 0.01:
                             continue
 
@@ -767,8 +783,8 @@ def run(capital=CAPITAL, paper=PAPER):
                         # (no 72H crash filter on SHORTs — crashes are good for shorts)
                         # ─────────────────────────────────────────────
 
-                        print(f"\n  *** SIGNAL: SHORT GLD @ ~${gld_px:.2f}  stop=${gld_stop:.2f}  target=${gld_target:.2f}  R:R={rr:.1f} ***")
-                        order = submit_bracket(client, "SHORT", qty, gld_stop, gld_target)
+                        print(f"\n  *** SIGNAL: SHORT GLD @ ~${gld_now:.2f}  stop=${stop:.2f}  target=${target:.2f}  R:R={rr:.1f} ***")
+                        order = submit_bracket(client, "SHORT", qty, stop, target)
 
                         stop_oid = None
                         try:
@@ -782,11 +798,11 @@ def run(capital=CAPITAL, paper=PAPER):
                         state["position"] = {
                             "dir":          "SHORT",
                             "qty":          qty,
-                            "entry":        gld_px,
-                            "stop":         gld_stop,
-                            "target":       gld_target,
-                            "initial_risk": gld_stop - gld_px,
-                            "best_price":   gld_px,
+                            "entry":        gld_now,
+                            "stop":         stop,
+                            "target":       target,
+                            "initial_risk": stop - gld_now,
+                            "best_price":   gld_now,
                             "zone_type":    "supply",
                             "entry_time":   f"{bdate} {btime}",
                         }
@@ -802,7 +818,7 @@ def run(capital=CAPITAL, paper=PAPER):
                             "dir": "SHORT", "qty": qty, "price": round(gld_px, 2),
                             "stop": round(gld_stop, 2), "target": round(gld_target, 2),
                             "alpaca_order_id": str(order.id),
-                            "reason": "ZONE_SUPPLY", "pnl": "", "balance": "",
+                            "reason": "ZONE_SUPPLY",  "pnl": "", "balance": "",
                         })
                         entered = True
                         break
