@@ -390,14 +390,14 @@ ASSETS = {
     "GC=F": {
         "label": "GLD",
         "name": "Gold ETF (Alpaca live)",
-        "state": DATA_DIR / "alpaca_state.json",    # Alpaca trader state
-        "trades": DATA_DIR / "alpaca_trades.csv",   # Alpaca trader log
+        "state": DATA_DIR / "zone_state.json",    # replay → paper trader state
+        "trades": DATA_DIR / "zone_trades.csv",   # replay → paper trader log
         "timeframe": "1H bars",
-        "schedule": "Mon–Fri 09:30–16:00 ET",
+        "schedule": "Sun 18:00 ET to Fri 17:00 ET",
         "signal": "Supply & Demand zone refinement — ATR regime + crash filter + hour filter",
-        "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.2R  slope=8  max2/day  72H-crash-filter",
+        "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.15R  slope=8  max2/day  72H-crash-filter",
         "accent": "#a47a1f",
-        "title": "Zone Strategy — GLD",
+        "title": "Zone Strategy — GC=F (from Mar 18)",
     },
 }
 
@@ -543,12 +543,11 @@ def render_hero(snapshot):
     )
 
     live_str = f"${live_price:,.2f}" if live_price else "market closed"
-    mode_str = snapshot["state"].get("mode", "paper").upper()
 
     st.markdown(
         f"""
 <div class="hero-shell">
-  <div class="eyebrow">Alpaca {mode_str} — GLD ETF</div>
+  <div class="eyebrow">GC=F Zone Strategy — replaying from Mar 18 2026</div>
   <div class="hero-grid">
       <div>
         <div class="hero-title">{cfg['title']}</div>
@@ -824,11 +823,42 @@ Parameters: `{cfg['params']}`
         st.markdown("---")
         st.markdown("**Filters active**")
         st.markdown(
-            "- ATR regime 0.8–1.2× (no low/spike vol)\n"
+            "- ATR regime 0.85–1.2× (no low/spike vol)\n"
             "- Skip body 0.3–0.7× ATR (weak confirm)\n"
-            "- Block hours 10,11,12,15,19 ET\n"
+            "- Block hours 7,10,11,12,15,19 UTC\n"
             "- 72H crash filter: no LONG if 72H drop > 1.5%"
         )
+        st.markdown("---")
+
+        # ── Alpaca live execution status ──────────────────────────────
+        st.markdown("**Alpaca Live Execution**")
+        alpaca_state_path = DATA_DIR / "alpaca_state.json"
+        alpaca_trades_path = DATA_DIR / "alpaca_trades.csv"
+        if alpaca_state_path.exists():
+            try:
+                with open(alpaca_state_path) as _f:
+                    _as = json.load(_f)
+                _mode   = _as.get("mode", "?").upper()
+                _bal    = _as.get("balance", 0)
+                _trades = _as.get("total_trades", 0)
+                _pnl    = _as.get("total_pnl", 0)
+                _pos    = _as.get("position")
+                _pos_str = (f"{_pos['dir']} {_pos.get('qty','')} shares "
+                            f"@ ${_pos.get('entry',0):.2f}" if _pos else "Flat")
+                st.markdown(
+                    f"Mode: `{_mode}` | Capital: `${_as.get('capital',0):,.0f}`\n\n"
+                    f"Balance: `${_bal:,.2f}` | P&L: `${_pnl:+,.2f}`\n\n"
+                    f"Trades: `{_trades}` | Position: `{_pos_str}`"
+                )
+            except Exception:
+                st.markdown("_Alpaca state unreadable_")
+        else:
+            st.markdown("_No Alpaca trades yet — waiting for market open_")
+
+        live_price = _fetch_live_gld_price()
+        if live_price:
+            st.markdown(f"GLD live price: **${live_price:,.2f}**")
+
         st.markdown("---")
         st.markdown(f"**Last refresh**  \n{datetime.now().strftime('%H:%M:%S')}")
         if st.button("Refresh now", use_container_width=False):

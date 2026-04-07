@@ -58,7 +58,13 @@ def _handle_signal(signum, _frame) -> None:
 
 
 def _run_gld_lane() -> None:
-    """Start Alpaca live trader (paper by default; set ALPACA_PAPER=false for real money)."""
+    """Run replay to populate dashboard history, then start Alpaca live trader."""
+    # Step 1: replay from March 18 → writes zone_trades.csv + zone_state.json
+    replay = _spawn("replay.py", [PYTHON, "replay.py"])
+    replay.wait()
+    if shutdown_requested:
+        return
+    # Step 2: Alpaca live trader (separate files: alpaca_trades.csv / alpaca_state.json)
     capital = os.environ.get("ALPACA_CAPITAL", "1000")
     _spawn("zone_live_alpaca.py",
            [PYTHON, "zone_live_alpaca.py", "--capital", capital])
