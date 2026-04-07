@@ -611,7 +611,7 @@ def render_equity_curve(snapshot):
         ),
         font=dict(color="#171d2c", family="DM Sans, sans-serif"),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def build_trade_table(df):
@@ -677,7 +677,7 @@ def render_trade_table(snapshot):
         styled = table.style.map(color_result, subset=["Result"]).map(color_pnl, subset=["Net P&L"])
     except AttributeError:
         styled = table.style.applymap(color_result, subset=["Result"]).applymap(color_pnl, subset=["Net P&L"])
-    st.dataframe(styled, use_container_width=True, height=360)
+    st.dataframe(styled, width="stretch", height=360)
 
 
 def render_daily_pnl(snapshot):
@@ -709,7 +709,7 @@ def render_daily_pnl(snapshot):
         yaxis=dict(showgrid=True, gridcolor="rgba(23,30,47,0.08)", tickprefix="$", color="#5d6778"),
         font=dict(color="#171d2c", family="DM Sans, sans-serif"),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def render_asset(snapshot, asset_key):
@@ -778,7 +778,7 @@ Parameters: `{cfg['params']}`
         )
         st.markdown("---")
         st.markdown(f"**Last refresh**  \n{datetime.now().strftime('%H:%M:%S')}")
-        if st.button("Refresh now", use_container_width=True):
+        if st.button("Refresh now", use_container_width=False):
             st.rerun()
         st.markdown("Auto-refresh every 60 seconds.")
         st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)

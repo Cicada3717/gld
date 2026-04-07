@@ -10,3 +10,4 @@ streamlit
 plotly
 requests
 optuna
+alpaca-py
