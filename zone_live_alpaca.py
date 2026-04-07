@@ -50,7 +50,7 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockLatestTradeRequest
 from alpaca.data.timeframe import TimeFrame
 
-from zone_refinement_backtest import detect_zones, _clean
+from zone_refinement_backtest import detect_zones   # _clean removed: Alpaca bars need no cleaning
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 # Edit these OR set environment variables (env vars take priority)
@@ -78,17 +78,17 @@ PARAMS = {
     "min_rr":             2.5,
     "risk_pct":           0.02,       # 2% of capital per trade
     "trail_activation_r": 2.5,
-    "trail_distance_r":   0.2,
+    "trail_distance_r":   0.15,
     "max_trades_day":     2,
     "commission":         0.0,        # Alpaca is commission-free
 }
 
 # ── ENTRY FILTERS ─────────────────────────────────────────────────────────────
-FILTER_ATR_LOW    = 0.80
+FILTER_ATR_LOW    = 0.85
 FILTER_ATR_HIGH   = 1.20
 FILTER_BODY_LOW   = 0.30
 FILTER_BODY_HIGH  = 0.70
-FILTER_BAD_HOURS  = {10, 11, 12, 15, 19}   # UTC hours with negative EV
+FILTER_BAD_HOURS  = {7, 10, 11, 12, 15, 19}   # UTC hours with negative EV
 FILTER_TREND_BARS = 72
 FILTER_TREND_PCT  = -0.015   # block LONG only when 72H drop > 1.5% (crash mode)
 
