@@ -55,7 +55,8 @@ FILTER_ATR_HIGH  = 1.20    # skip high-vol regime (16% WR when ATR > 1.2x avg)
 FILTER_BODY_LOW  = 0.30    # skip "small confirm" body range (27% WR, -$162 avg)
 FILTER_BODY_HIGH = 0.70
 FILTER_BAD_HOURS = {10, 11, 12, 15, 19}  # clearly negative avg P&L each hour
-FILTER_TREND_BARS = 72   # 72 x 1H bars ≈ 3 trading days; LONGs need positive 72H momentum
+FILTER_TREND_BARS = 72      # 72 x 1H bars ≈ 3 trading days
+FILTER_TREND_PCT  = -0.015  # block LONG only when 72H drop > 1.5% of price (real crash, not normal pullback)
 
 DATA_DIR   = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
 TRADE_LOG  = DATA_DIR / "zone_trades.csv"
@@ -471,9 +472,10 @@ def run(ticker="GC=F", capital=500.0):
                     trend_20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
 
                     # ── Pre-compute filter values once per bar ────────────
-                    n_bars = len(closes)
+                    n_bars    = len(closes)
                     trend_72h = closes[-1] - closes[-FILTER_TREND_BARS] \
                                 if n_bars >= FILTER_TREND_BARS else closes[-1] - closes[0]
+                    trend_72h_pct = trend_72h / closes[-1] if closes[-1] > 0 else 0
                     f_atr       = _atr14(highs, lows, closes)
                     f_atr_avg   = _atr14(highs[-30:], lows[-30:], closes[-30:], 20) \
                                   if len(closes) >= 22 else f_atr
@@ -535,8 +537,8 @@ def run(ticker="GC=F", capital=500.0):
                             if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
                                 print(f"      FILTER: small-confirm body={signed_body:.2f} — skip")
                                 zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
-                            if trend_72h <= 0:
-                                print(f"      FILTER: 72H trend={trend_72h:+.1f} bearish — skip LONG")
+                            if trend_72h_pct < FILTER_TREND_PCT:
+                                print(f"      FILTER: 72H trend={trend_72h_pct*100:+.2f}% < {FILTER_TREND_PCT*100:.1f}% — crash mode, skip LONG")
                                 zone["consumed"] = True; zone["consumed_date"] = bar_date_str; break
                             # ─────────────────────────────────────────────
 

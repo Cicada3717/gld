@@ -63,7 +63,8 @@ FILTER_ATR_HIGH  = 1.20
 FILTER_BODY_LOW  = 0.30
 FILTER_BODY_HIGH = 0.70
 FILTER_BAD_HOURS  = {10, 11, 12, 15, 19}
-FILTER_TREND_BARS = 72   # LONGs only: require 72H momentum positive
+FILTER_TREND_BARS = 72      # LONGs only: 72H crash filter
+FILTER_TREND_PCT  = -0.015  # block LONG when 72H drop > 1.5% of price
 
 
 def _entry_fill(raw_price, direction):
@@ -258,9 +259,10 @@ def replay_zone(df1h, zones):
             continue
 
         # Pre-compute filter values
-        n_bars    = len(closes)
-        trend_72h = closes[-1] - closes[-FILTER_TREND_BARS] \
-                    if n_bars >= FILTER_TREND_BARS else closes[-1] - closes[0]
+        n_bars        = len(closes)
+        trend_72h     = closes[-1] - closes[-FILTER_TREND_BARS] \
+                        if n_bars >= FILTER_TREND_BARS else closes[-1] - closes[0]
+        trend_72h_pct = trend_72h / closes[-1] if closes[-1] > 0 else 0
         f_atr       = _atr14(highs, lows, closes)
         f_atr_avg   = _atr14(highs[-30:], lows[-30:], closes[-30:], 20) \
                       if len(closes) >= 22 else f_atr
@@ -309,7 +311,7 @@ def replay_zone(df1h, zones):
                     zone["consumed"] = True; zone["consumed_date"] = date_str; break
                 if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
                     zone["consumed"] = True; zone["consumed_date"] = date_str; break
-                if trend_72h <= 0:
+                if trend_72h_pct < FILTER_TREND_PCT:
                     zone["consumed"] = True; zone["consumed_date"] = date_str; break
 
                 entry_fill = _entry_fill(price, "LONG")
