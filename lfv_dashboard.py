@@ -1,5 +1,5 @@
 """
-lfv_dashboard.py - Premium live dashboard for GC=F and BTC-USD.
+lfv_dashboard.py - Live dashboard for GC=F Zone Refinement strategy.
 """
 import json
 import os
@@ -377,22 +377,10 @@ ASSETS = {
         "trades": DATA_DIR / "zone_trades.csv",
         "timeframe": "1H bars",
         "schedule": "Sun 18:00 ET to Fri 17:00 ET",
-        "signal": "Supply and Demand zone refinement",
-        "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.2R  slope=8  max2/day",
+        "signal": "Supply & Demand zone refinement — ATR regime + crash filter + hour filter",
+        "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.2R  slope=8  max2/day  72H-crash-filter",
         "accent": "#a47a1f",
         "title": "Zone Strategy",
-    },
-    "BTC-USD": {
-        "label": "BTC-USD",
-        "name": "Bitcoin",
-        "state": DATA_DIR / "lfv_state_BTCUSD.json",
-        "trades": DATA_DIR / "lfv_trades_BTCUSD.csv",
-        "timeframe": "5-minute bars",
-        "schedule": "24/7 continuous scan",
-        "signal": "Liquidity sweep, AVWAP and volume profile",
-        "params": "swing_n=8  sweep_atr=0.25  min_rr=3.0  be=1.5R  trail=2.5R/0.5ATR",
-        "accent": "#b46a3a",
-        "title": "LFV Strategy",
     },
 }
 
@@ -545,22 +533,13 @@ def render_hero(snapshot):
 
 def render_position_banner(snapshot):
     open_pos = snapshot["open_pos"]
-    if snapshot["cfg"]["label"] == "BTC-USD":
-        phase_names = {1: "Hard stop", 2: "Breakeven", 3: "Trailing"}
-        phase_str = phase_names.get(open_pos.get("phase", 1), "?")
-        copy = (
-            f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} units at ${open_pos.get('entry', 0):,.3f} "
-            f"with stop ${open_pos.get('stop', 0):,.3f} in {phase_str} mode.<br>"
-            f"Entered {open_pos.get('entry_time', '?')} | Swept {open_pos.get('swept_lvl', 0):,.3f} "
-            f"| AVWAP {open_pos.get('avwap', 0):,.3f} | POC {open_pos.get('poc', 0):,.3f}"
-        )
-    else:
-        copy = (
-            f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} contracts at ${open_pos.get('entry', 0):,.3f} "
-            f"with stop ${open_pos.get('stop', 0):,.3f} and target ${open_pos.get('target', 0):,.3f}.<br>"
-            f"Entered {open_pos.get('entry_time', '?')} | Zone {open_pos.get('zone_type', '?')} "
-            f"| Trigger ${open_pos.get('entry_trigger', open_pos.get('entry', 0)):.3f}"
-        )
+    copy = (
+        f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} contracts "
+        f"at ${open_pos.get('entry', 0):,.3f} "
+        f"with stop ${open_pos.get('stop', 0):,.3f} and target ${open_pos.get('target', 0):,.3f}.<br>"
+        f"Entered {open_pos.get('entry_time', '?')} | Zone {open_pos.get('zone_type', '?')} "
+        f"| Trigger ${open_pos.get('entry_trigger', open_pos.get('entry', 0)):.3f}"
+    )
     st.markdown(
         f"""
 <div class="position-banner">
@@ -773,25 +752,31 @@ def render_asset(snapshot, asset_key):
         render_daily_pnl(snapshot)
 
     render_trade_table(snapshot)
-    if asset_key == "GC=F":
-        st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
 
 
 def render_sidebar():
+    cfg = ASSETS["GC=F"]
     with st.sidebar:
         st.markdown("## Strategy Notes")
-        for cfg in ASSETS.values():
-            st.markdown(
-                f"""
-**{cfg['label']} - {cfg['name']}**  
-Timeframe: {cfg['timeframe']}  
-Schedule: {cfg['schedule']}  
-Signal: {cfg['signal']}  
-Parameters: {cfg['params']}
+        st.markdown(
+            f"""
+**{cfg['label']} — {cfg['name']}**
+Timeframe: {cfg['timeframe']}
+Schedule: {cfg['schedule']}
+Signal: {cfg['signal']}
+Parameters: `{cfg['params']}`
 """
-            )
-            st.markdown("---")
-
+        )
+        st.markdown("---")
+        st.markdown("**Filters active**")
+        st.markdown(
+            "- ATR regime 0.8–1.2× (no low/spike vol)\n"
+            "- Skip body 0.3–0.7× ATR (weak confirm)\n"
+            "- Block hours 10,11,12,15,19 ET\n"
+            "- 72H crash filter: no LONG if 72H drop > 1.5%"
+        )
+        st.markdown("---")
         st.markdown(f"**Last refresh**  \n{datetime.now().strftime('%H:%M:%S')}")
         if st.button("Refresh now", use_container_width=True):
             st.rerun()
@@ -799,18 +784,9 @@ Parameters: {cfg['params']}
         st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
 
 
-selected_view = st.radio(
-    "Asset View",
-    options=["GC=F", "BTC-USD"],
-    horizontal=True,
-    index=0,
-    label_visibility="collapsed",
-)
-
-snapshot = build_snapshot(selected_view)
-
+# ── Main render ──────────────────────────────────────────────────────────────
+snapshot = build_snapshot("GC=F")
 render_hero(snapshot)
 st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
-render_asset(snapshot, selected_view)
-
+render_asset(snapshot, "GC=F")
 render_sidebar()
