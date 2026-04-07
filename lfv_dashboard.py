@@ -1,5 +1,5 @@
 """
-lfv_dashboard.py - Live dashboard for GC=F Zone Refinement strategy.
+lfv_dashboard.py - Live dashboard for GC=F Zone Refinement strategy (Alpaca execution).
 """
 import json
 import os
@@ -9,6 +9,23 @@ from pathlib import Path
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+# ── Live price via Alpaca data API (real-time, same feed as the trader) ───────
+def _fetch_live_gld_price():
+    """Return live GLD price from Alpaca IEX feed, or None on any failure."""
+    try:
+        from alpaca.data.historical import StockHistoricalDataClient
+        from alpaca.data.requests import StockLatestTradeRequest
+        key = os.environ.get("ALPACA_API_KEY", "")
+        sec = os.environ.get("ALPACA_SECRET_KEY", "")
+        if not key or "YOUR_KEY" in key:
+            return None
+        client = StockHistoricalDataClient(key, sec)
+        req    = StockLatestTradeRequest(symbol_or_symbols="GLD")
+        trade  = client.get_stock_latest_trade(req)
+        return float(trade["GLD"].price)
+    except Exception:
+        return None
 
 st.set_page_config(
     page_title="LFV Strategy",
@@ -371,16 +388,16 @@ DATA_DIR = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).paren
 
 ASSETS = {
     "GC=F": {
-        "label": "GC=F",
-        "name": "Gold Futures",
-        "state": DATA_DIR / "zone_state.json",
-        "trades": DATA_DIR / "zone_trades.csv",
+        "label": "GLD",
+        "name": "Gold ETF (Alpaca live)",
+        "state": DATA_DIR / "alpaca_state.json",    # Alpaca trader state
+        "trades": DATA_DIR / "alpaca_trades.csv",   # Alpaca trader log
         "timeframe": "1H bars",
-        "schedule": "Sun 18:00 ET to Fri 17:00 ET",
+        "schedule": "Mon–Fri 09:30–16:00 ET",
         "signal": "Supply & Demand zone refinement — ATR regime + crash filter + hour filter",
         "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.2R  slope=8  max2/day  72H-crash-filter",
         "accent": "#a47a1f",
-        "title": "Zone Strategy",
+        "title": "Zone Strategy — GLD",
     },
 }
 
@@ -438,9 +455,15 @@ def load_csv(path):
     if not path.exists():
         return pd.DataFrame()
     df = pd.read_csv(path)
-    for col in ["pnl", "balance", "price", "shares", "stop"]:
+    for col in ["pnl", "balance", "price", "qty", "shares", "stop", "target"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+    # normalise: Alpaca trader uses "qty"; old paper trader used "shares"
+    if "qty" in df.columns and "shares" not in df.columns:
+        df["shares"] = df["qty"]
+    # normalise: Alpaca trader closes show as CLOSED_BY_ALPACA
+    if "action" in df.columns:
+        df["action"] = df["action"].replace("CLOSED_BY_ALPACA", "CLOSE")
     return df
 
 
@@ -469,6 +492,19 @@ def build_snapshot(asset_key):
     today_closed = closed[closed["date"].astype(str) == today_str].copy() if not closed.empty else pd.DataFrame()
     today_pnl = float(today_closed["pnl"].sum()) if not today_closed.empty else 0.0
 
+    live_price = _fetch_live_gld_price()
+
+    # Unrealised P&L on open position using live price
+    open_pos   = state.get("position")
+    unreal_pnl = None
+    if open_pos and live_price:
+        qty = float(open_pos.get("qty", open_pos.get("shares", 0)))
+        entry = float(open_pos.get("entry", 0))
+        if open_pos.get("dir") == "LONG":
+            unreal_pnl = (live_price - entry) * qty
+        else:
+            unreal_pnl = (entry - live_price) * qty
+
     return {
         "cfg": cfg,
         "df": df,
@@ -485,27 +521,38 @@ def build_snapshot(asset_key):
         "today_pnl": today_pnl,
         "today_trades": len(today_closed),
         "today_date": today_str,
-        "open_pos": state.get("position"),
+        "open_pos": open_pos,
+        "live_price": live_price,
+        "unreal_pnl": unreal_pnl,
     }
 
 
 def render_hero(snapshot):
-    cfg = snapshot["cfg"]
-    open_pos = snapshot["open_pos"]
+    cfg        = snapshot["cfg"]
+    open_pos   = snapshot["open_pos"]
+    live_price = snapshot.get("live_price")
+    unreal_pnl = snapshot.get("unreal_pnl")
+
     open_status = "Open trade" if open_pos else "No open trade"
+    qty_val = open_pos.get("qty", open_pos.get("shares", "?")) if open_pos else "?"
     open_sub = (
-        f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} units at ${open_pos.get('entry', 0):,.3f}"
-        if open_pos
-        else "Watching for the next signal"
+        f"{open_pos.get('dir','?')} {format_units(qty_val)} shares "
+        f"@ ${open_pos.get('entry',0):,.2f}"
+        + (f" | Unreal: {format_signed_money(unreal_pnl)}" if unreal_pnl is not None else "")
+        if open_pos else "Watching for the next signal"
     )
+
+    live_str = f"${live_price:,.2f}" if live_price else "market closed"
+    mode_str = snapshot["state"].get("mode", "paper").upper()
+
     st.markdown(
         f"""
 <div class="hero-shell">
-  <div class="eyebrow">Live paper trading</div>
+  <div class="eyebrow">Alpaca {mode_str} — GLD ETF</div>
   <div class="hero-grid">
       <div>
         <div class="hero-title">{cfg['title']}</div>
-        <p class="hero-copy">Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p class="hero-copy">GLD live: {live_str} &nbsp;|&nbsp; Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
       </div>
     <div class="hero-stack">
       <div class="mini-panel">
@@ -532,13 +579,19 @@ def render_hero(snapshot):
 
 
 def render_position_banner(snapshot):
-    open_pos = snapshot["open_pos"]
+    open_pos   = snapshot["open_pos"]
+    live_price = snapshot.get("live_price")
+    unreal_pnl = snapshot.get("unreal_pnl")
+    qty_val    = open_pos.get("qty", open_pos.get("shares", "?"))
+    unreal_str = f" | Unrealised P&L: <b>{format_signed_money(unreal_pnl)}</b>" if unreal_pnl is not None else ""
+    live_str   = f" | GLD now: <b>${live_price:,.2f}</b>" if live_price else ""
     copy = (
-        f"{open_pos.get('dir', '?')} {format_units(open_pos.get('shares'))} contracts "
-        f"at ${open_pos.get('entry', 0):,.3f} "
-        f"with stop ${open_pos.get('stop', 0):,.3f} and target ${open_pos.get('target', 0):,.3f}.<br>"
-        f"Entered {open_pos.get('entry_time', '?')} | Zone {open_pos.get('zone_type', '?')} "
-        f"| Trigger ${open_pos.get('entry_trigger', open_pos.get('entry', 0)):.3f}"
+        f"{open_pos.get('dir', '?')} {format_units(qty_val)} shares "
+        f"@ ${open_pos.get('entry', 0):,.2f} "
+        f"| Stop ${open_pos.get('stop', 0):,.2f} "
+        f"| Target ${open_pos.get('target', 0):,.2f}<br>"
+        f"Entered {open_pos.get('entry_time', '?')} | Zone: {open_pos.get('zone_type', '?')}"
+        f"{live_str}{unreal_str}"
     )
     st.markdown(
         f"""
