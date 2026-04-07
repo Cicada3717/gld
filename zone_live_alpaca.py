@@ -372,7 +372,7 @@ def run(capital=CAPITAL, paper=PAPER):
     mode = "PAPER" if paper else "*** LIVE REAL MONEY ***"
     print(f"\n{'='*70}")
     print(f"  Zone Live Trader  |  Alpaca  |  {mode}")
-    print(f"  Signal: {SIGNAL_TICKER} (GC=F gold futures data)")
+    print(f"  Signal: {TRADE_TICKER} bars via Alpaca IEX (real-time)")
     print(f"  Trade : {TRADE_TICKER} ETF  |  Capital: ${capital:,.0f}")
     print(f"  Risk/trade: {PARAMS['risk_pct']*100:.0f}%  |  Shorts: {'enabled' if ALLOW_SHORT else 'disabled (cash acct)'}")
     print(f"  Log: {TRADE_LOG}")
@@ -729,8 +729,8 @@ def run(capital=CAPITAL, paper=PAPER):
 
                         log_trade({
                             "date": bdate, "time": btime, "action": "BUY",
-                            "dir": "LONG", "qty": qty, "price": round(gld_px, 2),
-                            "stop": round(gld_stop, 2), "target": round(gld_target, 2),
+                            "dir": "LONG", "qty": qty, "price": round(gld_now, 2),
+                            "stop": round(stop, 2), "target": round(target, 2),
                             "alpaca_order_id": str(order.id),
                             "reason": "ZONE_DEMAND", "pnl": "", "balance": "",
                         })
@@ -815,8 +815,8 @@ def run(capital=CAPITAL, paper=PAPER):
 
                         log_trade({
                             "date": bdate, "time": btime, "action": "SELL",
-                            "dir": "SHORT", "qty": qty, "price": round(gld_px, 2),
-                            "stop": round(gld_stop, 2), "target": round(gld_target, 2),
+                            "dir": "SHORT", "qty": qty, "price": round(gld_now, 2),
+                            "stop": round(stop, 2), "target": round(target, 2),
                             "alpaca_order_id": str(order.id),
                             "reason": "ZONE_SUPPLY",  "pnl": "", "balance": "",
                         })
