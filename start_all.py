@@ -58,13 +58,10 @@ def _handle_signal(signum, _frame) -> None:
 
 
 def _run_gld_lane() -> None:
-    """Run replay first to bootstrap state, then start the live trader."""
-    replay = _spawn("replay.py", [PYTHON, "replay.py"])
-    replay.wait()
-    if shutdown_requested:
-        return
-    _spawn("zone_paper_trader.py",
-           [PYTHON, "zone_paper_trader.py", "--ticker", "GC=F", "--capital", "10000"])
+    """Start Alpaca live trader (paper by default; set ALPACA_PAPER=false for real money)."""
+    capital = os.environ.get("ALPACA_CAPITAL", "1000")
+    _spawn("zone_live_alpaca.py",
+           [PYTHON, "zone_live_alpaca.py", "--capital", capital])
 
 
 def main() -> int:

@@ -1,8 +1,21 @@
 __pycache__/
 *.pyc
 *.png
+
+# paper trader state & logs
 paper_trades.csv
 paper_state.json
 zone_trades.csv
 zone_state.json
+
+# Alpaca live trader state & logs (never commit — contains trade history / balances)
+alpaca_trades.csv
+alpaca_state.json
+
+# secrets — never commit
+.env
+*.env
+secrets.py
+config_local.py
+
 .claude/
