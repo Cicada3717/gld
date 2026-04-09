@@ -165,6 +165,8 @@ def replay_zone(df1h, zones):
             continue
         if dt.weekday() == 6 and dt.hour < 18:
             continue
+        if dt.hour == 17:
+            continue
 
         last_processed_bar = ts
 

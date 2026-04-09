@@ -296,7 +296,7 @@ def submit_bracket(client, side, qty, stop_price, target_price):
         symbol=TRADE_TICKER,
         qty=qty,
         side=OrderSide.BUY if side == "LONG" else OrderSide.SELL,
-        time_in_force=TimeInForce.DAY,
+        time_in_force=TimeInForce.GTC,
         order_class=OrderClass.BRACKET,
         stop_loss=StopLossRequest(stop_price=round(stop_price, 2)),
         take_profit=TakeProfitRequest(limit_price=round(target_price, 2)),
@@ -498,26 +498,23 @@ def run(capital=CAPITAL, paper=PAPER):
             if state["position"] and not alpaca_pos:
                 pos = state["position"]
                 print(f"\n  *** {pos['dir']} position closed by Alpaca (stop or target hit) ***")
-                # Estimate P&L from last known stop/target and entry price
                 try:
-                    # Fetch the closed order to get actual fill price
+                    # Try to find the actual exit fill from the bracket's child legs
                     exit_price = None
-                    try:
-                        from alpaca.trading.requests import GetOrdersRequest
-                        from alpaca.trading.enums import QueryOrderStatus
-                        closed_orders = client.get_orders(
-                            GetOrdersRequest(status=QueryOrderStatus.CLOSED, symbol=TRADE_TICKER, limit=5)
-                        )
-                        for o in closed_orders:
-                            if o.filled_avg_price and str(o.id) != state.get("open_order_id"):
-                                exit_price = float(o.filled_avg_price)
-                                break
-                    except Exception:
-                        pass
+                    parent_id = state.get("open_order_id")
+                    if parent_id:
+                        try:
+                            parent_order = client.get_order_by_id(parent_id)
+                            for leg in (parent_order.legs or []):
+                                if leg.filled_avg_price and float(leg.filled_qty or 0) > 0:
+                                    exit_price = float(leg.filled_avg_price)
+                                    break
+                        except Exception:
+                            pass
 
-                    # Fallback: use stop price as conservative estimate
+                    # Fallback: fetch current price as best estimate
                     if exit_price is None:
-                        exit_price = pos["stop"]
+                        exit_price = get_realtime_price() or pos["stop"]
 
                     if pos["dir"] == "LONG":
                         pnl_est = (exit_price - pos["entry"]) * pos["qty"]
@@ -537,7 +534,7 @@ def run(capital=CAPITAL, paper=PAPER):
                         "action": "CLOSED_BY_ALPACA", "dir": pos["dir"],
                         "qty": pos["qty"], "price": round(exit_price, 2),
                         "stop": pos["stop"],
-                        "target": pos["target"], "alpaca_order_id": state.get("open_order_id", ""),
+                        "target": pos["target"], "alpaca_order_id": parent_id or "",
                         "reason": "STOP_OR_TARGET", "pnl": round(pnl_est, 2),
                         "balance": round(state["balance"], 2),
                     })
@@ -582,6 +579,7 @@ def run(capital=CAPITAL, paper=PAPER):
                     state["trades_today_count"] = 0
 
                 # ── Manage open position: trailing stop ───────────────
+                alpaca_pos = get_open_position(client)  # refresh each bar
                 if state["position"] and alpaca_pos:
                     pos = state["position"]
                     initial_risk   = pos.get("initial_risk", 1.0)
