@@ -22,34 +22,78 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
 
-from zone_refinement_backtest import detect_zones, _clean
+from zone_refinement_backtest import detect_zones
 
 # -- Config ------------------------------------------------------------------
-TICKER      = "GC=F"
-CAPITAL     = 10_000.0
+TICKER      = "GLD"
+CAPITAL     = 1_000.0
 START_DATE  = date(2026, 3, 18)
-SLIPPAGE    = 0.50
+SLIPPAGE    = 0.05          # GLD ETF: minimal slippage vs $0.50 for futures
 DATA_DIR    = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", Path(__file__).parent))
-YF_CACHE_DIR = DATA_DIR / ".yf_cache"
-YF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-yf.set_tz_cache_location(str(YF_CACHE_DIR))
 
 PARAMS = dict(
     strength_bars=3, strength_mult=1.5,
     bos_ema=21,
-    bos_slope_bars=8,        # OPTIMIZED
+    bos_slope_bars=8,
     stop_buffer=0.001,
     target_lookback=60, target_skip=5,
     min_rr=2.5,
-    trail_activation_r=2.5,  # OPTIMIZED
-    trail_distance_r=0.15,   # OPTIMIZED
-    max_trades_day=2,        # OPTIMIZED
+    trail_activation_r=2.5,
+    trail_distance_r=0.15,
+    max_trades_day=2,
     risk_pct=0.02,
-    leverage=5.0,
-    commission=0.0001,
+    leverage=5.0,            # simulated 5x — matches backtest scale
+    commission=0.0,          # Alpaca is commission-free
 )
+
+
+def _fetch_gld_bars(months=6):
+    """
+    Fetch GLD 1H bars — Alpaca IEX if keys are set, else yfinance fallback.
+    Returns tz-naive DatetimeIndex DataFrame with OHLCV columns.
+    """
+    key = os.environ.get("ALPACA_API_KEY", "")
+    sec = os.environ.get("ALPACA_SECRET_KEY", "")
+
+    if key and "YOUR_KEY" not in key:
+        # ── Alpaca path (Railway / production) ──────────────────────────
+        try:
+            from alpaca.data.historical import StockHistoricalDataClient
+            from alpaca.data.requests import StockBarsRequest
+            from alpaca.data.timeframe import TimeFrame
+            client = StockHistoricalDataClient(key, sec)
+            end    = pd.Timestamp.now(tz="UTC")
+            start  = end - pd.DateOffset(months=months)
+            req    = StockBarsRequest(
+                symbol_or_symbols=TICKER,
+                timeframe=TimeFrame.Hour,
+                start=start,
+                feed="iex",
+            )
+            df = client.get_stock_bars(req).df
+            if isinstance(df.index, pd.MultiIndex):
+                df = df.xs(TICKER, level="symbol")
+            df = df.rename(columns={"open":"Open","high":"High","low":"Low",
+                                     "close":"Close","volume":"Volume"})
+            df = df[["Open","High","Low","Close","Volume"]].dropna()
+            df.index = pd.to_datetime(df.index, utc=True).tz_localize(None)
+            print(f"  [Alpaca IEX] {len(df)} bars fetched")
+            return df
+        except Exception as e:
+            print(f"  [Alpaca] Failed ({e}), falling back to yfinance...")
+
+    # ── yfinance fallback (local dev / no keys) ──────────────────────────
+    import yfinance as yf
+    from zone_refinement_backtest import _clean
+    end   = pd.Timestamp.now()
+    start = end - pd.DateOffset(months=months)
+    df = _clean(yf.download(TICKER,
+                            start=start.strftime("%Y-%m-%d"),
+                            end=end.strftime("%Y-%m-%d"),
+                            interval="1h", progress=False))
+    print(f"  [yfinance fallback] {len(df)} bars fetched")
+    return df
 
 TRADE_FIELDS = [
     "date", "time", "action", "dir", "shares", "price",
@@ -420,7 +464,7 @@ def replay_zone(df1h, zones):
               f"{live_pos['shares']}sh @ ${live_pos['entry']:.3f}")
 
     state = {
-        "ticker": TICKER, "capital": CAPITAL, "balance": round(balance, 2),
+        "ticker": "GLD", "capital": CAPITAL, "balance": round(balance, 2),
         "position": live_pos, "zones": [], "zones_date": None,
         "last_processed_bar": str(last_processed_bar) if last_processed_bar is not None else None,
         "trades_today_date": trades_today_date,
@@ -435,19 +479,14 @@ def replay_zone(df1h, zones):
 
 if __name__ == "__main__":
     print(f"\n{'='*60}")
-    print(f"  GC=F Zone Replay  |  {START_DATE} to today")
-    print(f"  Capital: ${CAPITAL:,.0f}  |  Params: optimized")
+    print(f"  GLD Zone Replay  |  {START_DATE} to today")
+    print(f"  Capital: ${CAPITAL:,.0f}  |  5x leverage (simulated)")
     print(f"{'='*60}\n")
 
-    print("[1/2] Fetching GC=F 1H data (6 months for zone warmup)...")
-    end   = pd.Timestamp.now()
-    start = end - pd.DateOffset(months=6)
-    df1h  = _clean(yf.download(TICKER,
-                               start=start.strftime("%Y-%m-%d"),
-                               end=end.strftime("%Y-%m-%d"),
-                               interval="1h", progress=False))
+    print("[1/2] Fetching GLD 1H bars from Alpaca IEX (6 months)...")
+    df1h = _fetch_gld_bars(months=6)
     if df1h.empty:
-        raise RuntimeError(f"No 1H data for {TICKER}. Check ticker and yfinance.")
+        raise RuntimeError("No GLD data from Alpaca. Check API keys.")
 
     df4h  = (df1h.resample("4h")
              .agg({"Open":"first","High":"max","Low":"min","Close":"last","Volume":"sum"})

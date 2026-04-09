@@ -396,6 +396,94 @@ div[data-testid="stPlotlyChart"] {
 .stMarkdown p { color: var(--muted); font-size: 0.85rem; }
 div[data-testid="stHorizontalBlock"] { gap: 0.75rem; }
 .divider-space { height: 1.25rem; }
+
+/* ── Mobile responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .block-container {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        padding-top: 0.75rem !important;
+    }
+
+    /* Topbar: stack vertically on mobile */
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .topbar-title { font-size: 1.1rem; }
+    .topbar-strategy { font-size: 0.65rem; }
+
+    /* Metrics row: 2-up grid on mobile */
+    .topbar-metrics {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+    }
+
+    .topbar-metric {
+        min-width: unset;
+        padding: 0.55rem 0.75rem;
+        text-align: left;
+    }
+
+    .topbar-metric-value { font-size: 0.95rem; }
+
+    /* Metric cards: 2-up grid */
+    div[data-testid="stHorizontalBlock"] {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Metric card values: smaller on mobile */
+    .metric-value { font-size: 1.2rem; }
+    .metric-label { font-size: 0.62rem; }
+    .metric-sub   { font-size: 0.7rem; }
+
+    /* Pills: wrap tightly */
+    .pill-row { gap: 0.35rem; }
+    .pill { font-size: 0.68rem; padding: 0.25rem 0.55rem; }
+
+    /* Panel titles */
+    .panel-title { font-size: 0.82rem; }
+    .section-header { font-size: 0.65rem; margin: 1rem 0 0.5rem 0; }
+
+    /* Dataframe: horizontal scroll */
+    div[data-testid="stDataFrame"] {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Plotly charts: reduce height on mobile */
+    div[data-testid="stPlotlyChart"] { min-height: 220px; }
+
+    /* Position banner: compact */
+    .position-banner { padding: 0.7rem 0.85rem; }
+    .position-copy { font-size: 0.8rem; }
+
+    /* Sidebar: tighter spacing */
+    .sb-value { font-size: 0.95rem; }
+    .sb-label { font-size: 0.62rem; margin: 0.75rem 0 0.3rem 0; }
+}
+
+@media (max-width: 480px) {
+    .topbar-metrics {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .topbar-metric-value { font-size: 0.85rem; }
+
+    /* Single column metric cards on very small screens */
+    div[data-testid="stHorizontalBlock"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .metric-value { font-size: 1.1rem; }
+}
 </style>
 """,
     unsafe_allow_html=True,
