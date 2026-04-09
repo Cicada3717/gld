@@ -43,7 +43,7 @@ PARAMS = dict(
     trail_distance_r=0.15,
     max_trades_day=2,
     risk_pct=0.02,
-    leverage=5.0,            # simulated 5x — matches backtest scale
+    leverage=1.0,            # cash account — no leverage
     commission=0.0,          # Alpaca is commission-free
 )
 
@@ -480,7 +480,7 @@ def replay_zone(df1h, zones):
 if __name__ == "__main__":
     print(f"\n{'='*60}")
     print(f"  GLD Zone Replay  |  {START_DATE} to today")
-    print(f"  Capital: ${CAPITAL:,.0f}  |  5x leverage (simulated)")
+    print(f"  Capital: ${CAPITAL:,.0f}  |  No leverage (cash account)")
     print(f"{'='*60}\n")
 
     print("[1/2] Fetching GLD 1H bars from Alpaca IEX (6 months)...")

@@ -1,7 +1,7 @@
 {
   "ticker": "GLD",
   "capital": 1000.0,
-  "balance": 1230.44,
+  "balance": 1057.22,
   "position": null,
   "zones": [],
   "zones_date": null,
@@ -9,7 +9,7 @@
   "trades_today_date": "2026-04-08",
   "trades_today_count": 0,
   "total_trades": 5,
-  "total_pnl": 230.44,
+  "total_pnl": 57.22,
   "wins": 4,
   "losses": 1
 }
