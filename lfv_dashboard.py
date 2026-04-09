@@ -27,6 +27,8 @@ def _fetch_live_gld_price():
     except Exception:
         return None
 
+
+
 st.set_page_config(
     page_title="LFV Strategy",
     page_icon="📈",
@@ -412,7 +414,7 @@ ASSETS = {
         "signal": "Supply & Demand zone refinement — ATR regime + crash filter + hour filter",
         "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.15R  slope=8  max2/day  72H-crash-filter",
         "accent": "#d4a843",
-        "title": "Zone Strategy — GC=F (from Mar 18)",
+        "title": "Zone Strategy — GLD (from Mar 18)",
     },
 }
 
@@ -544,7 +546,7 @@ def build_snapshot(asset_key):
 
 def render_hero(snapshot):
     live_price = snapshot.get("live_price")
-    live_str   = f"${live_price:,.2f}" if live_price else "Closed"
+    price_str  = f"GLD&nbsp;${live_price:,.2f}" if live_price else "GLD&nbsp;closed"
     roi_val    = snapshot["roi"]
     roi_cls    = "pos" if roi_val > 0 else ("neg" if roi_val < 0 else "gold")
     pnl_cls    = "pos" if snapshot["total_pnl"] > 0 else ("neg" if snapshot["total_pnl"] < 0 else "gold")
@@ -554,9 +556,9 @@ def render_hero(snapshot):
         f"""
 <div class="topbar">
   <div class="topbar-left">
-    <div class="topbar-strategy">GC=F &nbsp;·&nbsp; Zone Refinement Strategy</div>
+    <div class="topbar-strategy">Zone Refinement Strategy</div>
     <div class="topbar-title">LFV Dashboard</div>
-    <div class="topbar-sub">GLD live&nbsp;&nbsp;{live_str}&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;Updated {updated}</div>
+    <div class="topbar-sub">{price_str}&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;Updated {updated}</div>
   </div>
   <div class="topbar-metrics">
     <div class="topbar-metric">
@@ -907,26 +909,56 @@ def render_sidebar():
         )
 
 
-def render_zone_levels():
-    """Live nearest zone levels panel — fetches fresh GC=F data each render."""
-    st.markdown('<div class="panel-title">Nearest Entry Zones — GC=F Live</div>', unsafe_allow_html=True)
+def _fetch_gld_bars_alpaca():
+    """Fetch 6 months of GLD 1H bars from Alpaca. Returns a clean DataFrame or empty."""
     try:
-        import yfinance as yf
+        from alpaca.data.historical import StockHistoricalDataClient
+        from alpaca.data.requests import StockBarsRequest
+        from alpaca.data.timeframe import TimeFrame
+        key = os.environ.get("ALPACA_API_KEY", "")
+        sec = os.environ.get("ALPACA_SECRET_KEY", "")
+        if not key or "YOUR_KEY" in key:
+            return pd.DataFrame()
+        client = StockHistoricalDataClient(key, sec)
+        end   = pd.Timestamp.now(tz="UTC")
+        start = end - pd.DateOffset(months=6)
+        req   = StockBarsRequest(
+            symbol_or_symbols="GLD",
+            timeframe=TimeFrame.Hour,
+            start=start,
+            end=end,
+            feed="iex",
+        )
+        bars = client.get_stock_bars(req).df
+        if bars.empty:
+            return pd.DataFrame()
+        if isinstance(bars.index, pd.MultiIndex):
+            bars = bars.xs("GLD", level="symbol")
+        bars.index = pd.to_datetime(bars.index, utc=True).tz_localize(None)
+        bars.columns = [c.capitalize() for c in bars.columns]
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            if col not in bars.columns:
+                return pd.DataFrame()
+        return bars[["Open", "High", "Low", "Close", "Volume"]].dropna()
+    except Exception:
+        return pd.DataFrame()
+
+
+def render_zone_levels():
+    """Live nearest zone levels panel — fetches GLD bars from Alpaca."""
+    st.markdown('<div class="panel-title">Nearest Entry Zones — GLD</div>', unsafe_allow_html=True)
+    try:
         import numpy as np
-        from zone_refinement_backtest import detect_zones, _clean
+        from zone_refinement_backtest import detect_zones
 
         FILTER_ATR_LOW=0.85; FILTER_ATR_HIGH=1.20
         FILTER_BODY_LOW=0.30; FILTER_BODY_HIGH=0.70
         FILTER_BAD_HOURS={7,10,11,12,15,19}
         FILTER_TREND_PCT=-0.015; FILTER_TREND_BARS=72
 
-        end  = pd.Timestamp.now()
-        start= end - pd.DateOffset(months=6)
-        df1h = _clean(yf.download("GC=F", start=start.strftime("%Y-%m-%d"),
-                                   end=end.strftime("%Y-%m-%d"),
-                                   interval="1h", progress=False))
+        df1h = _fetch_gld_bars_alpaca()
         if df1h.empty:
-            st.info("Waiting for GC=F data…")
+            st.info("Waiting for GLD data from Alpaca…")
             return
 
         df4h = (df1h.resample("4h")

@@ -10,7 +10,7 @@ All bugs fixed:
   - Best-price tracking uses bar HIGH (LONG) / LOW (SHORT)
 
 Optimized params:
-  bos_slope_bars=8, min_rr=2.5, trail_activation=2.5R, trail_dist=0.2R
+  bos_slope_bars=8, min_rr=2.5, trail_activation=2.5R, trail_dist=0.15R
   max_trades_day=2
 """
 
@@ -44,7 +44,7 @@ PARAMS = dict(
     target_lookback=60, target_skip=5,
     min_rr=2.5,
     trail_activation_r=2.5,  # OPTIMIZED
-    trail_distance_r=0.2,    # OPTIMIZED
+    trail_distance_r=0.15,   # OPTIMIZED
     max_trades_day=2,        # OPTIMIZED
     risk_pct=0.02,
     leverage=5.0,
@@ -58,11 +58,11 @@ TRADE_FIELDS = [
 
 # -- Pattern-recognition entry filters (from analyze_losses.py) --------------
 # RSI filter removed: all RSI buckets positive EV at 2.5 R:R
-FILTER_ATR_LOW   = 0.80
+FILTER_ATR_LOW   = 0.85
 FILTER_ATR_HIGH  = 1.20
 FILTER_BODY_LOW  = 0.30
 FILTER_BODY_HIGH = 0.70
-FILTER_BAD_HOURS  = {10, 11, 12, 15, 19}
+FILTER_BAD_HOURS  = {7, 10, 11, 12, 15, 19}
 FILTER_TREND_BARS = 72      # LONGs only: 72H crash filter
 FILTER_TREND_PCT  = -0.015  # block LONG when 72H drop > 1.5% of price
 

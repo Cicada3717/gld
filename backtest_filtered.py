@@ -3,10 +3,11 @@ backtest_filtered.py — GC=F 1-year backtest WITH pattern-recognition filters.
 
 Filters applied based on analyze_losses.py findings:
   1. RSI filter       : skip when RSI < 35 or RSI > 68  (40-60 sweet spot is 54-61% WR)
-  2. ATR regime       : skip when entry_atr < 0.8x or > 1.2x avg_atr_20
+  2. ATR regime       : skip when entry_atr < 0.85x or > 1.2x avg_atr_20
                         (low-vol 0% WR, elevated only 16.7% WR)
   3. Body filter      : skip when body_pct in 0.3-0.7 ("small confirm" = 27.8% WR, -$162 avg)
-  4. Hour filter      : skip hours 10,11,12,15,19,22  (all <25% WR)
+  4. Hour filter      : skip hours 7,10,11,12,15,19
+  5. 72H crash filter : block LONG when 72H drop > 1.5%
 """
 from datetime import datetime, date
 import numpy as np
@@ -23,17 +24,19 @@ PARAMS = dict(
     strength_bars=3, strength_mult=1.5, bos_ema=21,
     bos_slope_bars=8, stop_buffer=0.001,
     target_lookback=60, target_skip=5, min_rr=2.5,
-    trail_activation_r=2.5, trail_distance_r=0.2,
+    trail_activation_r=2.5, trail_distance_r=0.15,
     max_trades_day=2, risk_pct=0.02, leverage=5.0, commission=0.0001,
 )
 
 # ── FILTERS ─────────────────────────────────────────────────────────────────
 # RSI filter REMOVED — all RSI buckets have positive expected value (2.5 R:R saves them)
-ATR_LOW   = 0.80     # skip when entry_atr < ATR_LOW  * avg_atr_20  (low-vol = 0% WR)
+ATR_LOW   = 0.85     # safer upgrade: tighter low-vol filter improved 1Y ROI
 ATR_HIGH  = 1.20     # skip when entry_atr > ATR_HIGH * avg_atr_20  (elevated = 16% WR)
 BODY_SKIP_LOW  = 0.30  # skip "small confirm" body range  [0.30 , 0.70)  (27% WR, -$162 avg)
 BODY_SKIP_HIGH = 0.70
-BAD_HOURS = {10, 11, 12, 15, 19}  # clearly negative avg P&L; removed 22 (only -$18, borderline)
+BAD_HOURS = {7, 10, 11, 12, 15, 19}  # safer upgrade: 07:00 was the worst hour in the 1Y trade study
+TREND_BARS = 72
+TREND_PCT_MIN = -0.015  # block LONG when 72H drop > 1.5%
 
 # ── indicators ──────────────────────────────────────────────────────────────
 
@@ -81,7 +84,7 @@ def efill(px, d): return px+SLIPPAGE if d=="LONG" else px-SLIPPAGE
 
 print(f"\n{'='*80}")
 print(f"  GC=F 1-YEAR FILTERED BACKTEST  |  {START} to today")
-print(f"  Filters: ATR regime {ATR_LOW}-{ATR_HIGH}x | no small-confirm body | skip hours {sorted(BAD_HOURS)}")
+print(f"  Filters: ATR regime {ATR_LOW}-{ATR_HIGH}x | no small-confirm body | skip hours {sorted(BAD_HOURS)} | 72H crash filter {TREND_PCT_MIN*100:.1f}%")
 print(f"{'='*80}\n")
 
 print("Fetching GC=F 1H data (15 months for zone warmup)...")
@@ -103,7 +106,7 @@ wins = losses = skipped = 0
 total_pnl = 0.0; trades = []
 peak = CAPITAL; max_dd = 0.0; monthly = {}
 trades_today_date = None; trades_today_count = 0
-skip_reasons = {"atr":0, "body":0, "hour":0}
+skip_reasons = {"atr":0, "body":0, "hour":0, "trend":0}
 
 for ts, row in df1h[df1h.index >= replay_start].iterrows():
     dt = ts.to_pydatetime()
@@ -169,6 +172,8 @@ for ts, row in df1h[df1h.index >= replay_start].iterrows():
     bull = bos_bull(closes, PARAMS["bos_ema"], PARAMS["bos_slope_bars"])
     bear = bos_bear(closes, PARAMS["bos_ema"], PARAMS["bos_slope_bars"])
     t20  = closes[-1]-closes[-20] if len(closes)>=20 else 0
+    trend_72h = closes[-1]-closes[-TREND_BARS] if len(closes)>=TREND_BARS else closes[-1]-closes[0]
+    trend_72h_pct = trend_72h / closes[-1] if closes[-1] > 0 else 0
 
     # ── pre-compute filter values ─────────────────────────────────────────
     entry_atr  = atr_val(highs, lows, closes)
@@ -207,6 +212,8 @@ for ts, row in df1h[df1h.index >= replay_start].iterrows():
                 skip_reasons["atr"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
             if BODY_SKIP_LOW <= signed_body < BODY_SKIP_HIGH:
                 skip_reasons["body"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+            if trend_72h_pct < TREND_PCT_MIN:
+                skip_reasons["trend"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
             # ─────────────────────────────────────────────────────────────
 
             ef = efill(price,"LONG")
@@ -250,7 +257,7 @@ print(f"{'='*80}")
 print(f"  FILTERED RESULTS")
 print(f"{'='*80}")
 print(f"  Trades     : {n}  ({wins}W / {losses}L)  [skipped: {sum(skip_reasons.values())} zones]")
-print(f"  Skip breakdown: ATR={skip_reasons['atr']}  Body={skip_reasons['body']}  Hour={skip_reasons['hour']}")
+print(f"  Skip breakdown: ATR={skip_reasons['atr']}  Body={skip_reasons['body']}  Hour={skip_reasons['hour']}  Trend={skip_reasons['trend']}")
 print(f"  Win Rate   : {wr:.1f}%")
 print(f"  ROI        : {roi:+.2f}%")
 print(f"  Net P&L    : ${total_pnl:+,.2f}")

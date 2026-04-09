@@ -39,7 +39,7 @@ PARAMS = {
     "min_rr":             2.5,
     "risk_pct":           0.02,   # 2% per trade (conservative; 2.5% = +356% but higher variance)
     "trail_activation_r": 2.5,    # OPTIMIZED: let strong trends run before trailing
-    "trail_distance_r":   0.2,    # OPTIMIZED: tighter trail once activated
+    "trail_distance_r":   0.15,   # OPTIMIZED: tighter trail once activated
     "max_trades_day":     2,      # OPTIMIZED: cap churn on busy sessions
     "leverage":           5.0,
     "commission":         0.0001,
@@ -50,11 +50,11 @@ SLIPPAGE = 0.50
 # ── Pattern-recognition entry filters (from analyze_losses.py study) ─────────
 # RSI filter REMOVED: all RSI buckets have positive expected value at 2.5 R:R
 # keeping RSI filter was cutting +EV trades and reducing ROI (+197% → +332% after removal)
-FILTER_ATR_LOW   = 0.80    # skip low-vol regime  (0% WR when ATR < 0.8x avg)
+FILTER_ATR_LOW   = 0.85    # safer upgrade: tighter low-vol filter improved 1Y ROI
 FILTER_ATR_HIGH  = 1.20    # skip high-vol regime (16% WR when ATR > 1.2x avg)
 FILTER_BODY_LOW  = 0.30    # skip "small confirm" body range (27% WR, -$162 avg)
 FILTER_BODY_HIGH = 0.70
-FILTER_BAD_HOURS = {10, 11, 12, 15, 19}  # clearly negative avg P&L each hour
+FILTER_BAD_HOURS = {7, 10, 11, 12, 15, 19}  # safer upgrade: 07:00 was the worst hour in 1Y stats
 FILTER_TREND_BARS = 72      # 72 x 1H bars ≈ 3 trading days
 FILTER_TREND_PCT  = -0.015  # block LONG only when 72H drop > 1.5% of price (real crash, not normal pullback)
 
