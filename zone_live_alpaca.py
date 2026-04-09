@@ -183,7 +183,9 @@ def fetch_gld_bars(months=6):
     df = df.rename(columns={"open": "Open", "high": "High",
                              "low":  "Low",  "close": "Close", "volume": "Volume"})
     df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
-    df.index = pd.to_datetime(df.index, utc=True)
+    # Strip timezone to match backtest/replay (tz-naive) — detect_zones
+    # and 4H resample must produce identical bucket boundaries.
+    df.index = pd.to_datetime(df.index, utc=True).tz_localize(None)
     return df
 
 
@@ -496,26 +498,48 @@ def run(capital=CAPITAL, paper=PAPER):
             if state["position"] and not alpaca_pos:
                 pos = state["position"]
                 print(f"\n  *** {pos['dir']} position closed by Alpaca (stop or target hit) ***")
-                # Best-effort P&L from Alpaca account
+                # Estimate P&L from last known stop/target and entry price
                 try:
-                    acct2 = client.get_account()
-                    new_equity = float(acct2.portfolio_value)
-                    pnl_est = new_equity - state["balance"]
-                    state["balance"]      = new_equity
+                    # Fetch the closed order to get actual fill price
+                    exit_price = None
+                    try:
+                        from alpaca.trading.requests import GetOrdersRequest
+                        from alpaca.trading.enums import QueryOrderStatus
+                        closed_orders = client.get_orders(
+                            GetOrdersRequest(status=QueryOrderStatus.CLOSED, symbol=TRADE_TICKER, limit=5)
+                        )
+                        for o in closed_orders:
+                            if o.filled_avg_price and str(o.id) != state.get("open_order_id"):
+                                exit_price = float(o.filled_avg_price)
+                                break
+                    except Exception:
+                        pass
+
+                    # Fallback: use stop price as conservative estimate
+                    if exit_price is None:
+                        exit_price = pos["stop"]
+
+                    if pos["dir"] == "LONG":
+                        pnl_est = (exit_price - pos["entry"]) * pos["qty"]
+                    else:
+                        pnl_est = (pos["entry"] - exit_price) * pos["qty"]
+
+                    state["balance"]     += pnl_est
                     state["total_pnl"]   += pnl_est
                     state["total_trades"] += 1
                     if pnl_est > 0:
                         state["wins"] += 1
                     else:
                         state["losses"] += 1
-                    print(f"  Equity: ${new_equity:,.2f}  Est P&L: ${pnl_est:+.2f}")
+                    print(f"  Balance: ${state['balance']:,.2f}  Est P&L: ${pnl_est:+.2f} (exit ~${exit_price:.2f})")
                     log_trade({
                         "date": date_str, "time": now.strftime("%H:%M"),
                         "action": "CLOSED_BY_ALPACA", "dir": pos["dir"],
-                        "qty": pos["qty"], "price": "", "stop": pos["stop"],
+                        "qty": pos["qty"], "price": round(exit_price, 2),
+                        "stop": pos["stop"],
                         "target": pos["target"], "alpaca_order_id": state.get("open_order_id", ""),
                         "reason": "STOP_OR_TARGET", "pnl": round(pnl_est, 2),
-                        "balance": round(new_equity, 2),
+                        "balance": round(state["balance"], 2),
                     })
                 except Exception as ex:
                     print(f"  P&L sync error: {ex}")
@@ -591,6 +615,12 @@ def run(capital=CAPITAL, paper=PAPER):
                                 update_stop_order(client, state["stop_order_id"], new_stop)
                                 pos["stop"] = new_stop
                                 state["trail_activated"] = True
+                                save_state(state)
+                        elif state["trail_activated"] and best <= pos["entry"] - trail_activate:
+                            new_stop = best + trail_dist
+                            if new_stop < pos["stop"] - 0.01 and state.get("stop_order_id"):
+                                update_stop_order(client, state["stop_order_id"], new_stop)
+                                pos["stop"] = new_stop
                                 save_state(state)
 
                     unreal = float(alpaca_pos.unrealized_pl) if alpaca_pos else 0
@@ -675,7 +705,8 @@ def run(capital=CAPITAL, paper=PAPER):
                                   f"({drift*100:.2f}% drift) — skip")
                             break
 
-                        qty = calc_qty(capital, gld_now, (gld_now - stop))
+                        cur_balance = state["balance"]
+                        qty = calc_qty(cur_balance, gld_now, (gld_now - stop))
                         if qty < 0.01:
                             print(f"    Qty too small ({qty:.4f} shares) — skip")
                             continue
@@ -765,7 +796,8 @@ def run(capital=CAPITAL, paper=PAPER):
                                   f"({drift*100:.2f}% drift) — skip")
                             break
 
-                        qty = calc_qty(capital, gld_now, (stop - gld_now))
+                        cur_balance = state["balance"]
+                        qty = calc_qty(cur_balance, gld_now, (stop - gld_now))
                         if qty < 0.01:
                             continue
 
@@ -849,9 +881,15 @@ def run(capital=CAPITAL, paper=PAPER):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital", type=float, default=CAPITAL)
-    ap.add_argument("--paper",   action="store_true", default=PAPER)
-    ap.add_argument("--live",    action="store_true", help="Disable paper mode (real money)")
+    ap.add_argument("--paper",   action="store_true", help="Force paper mode")
+    ap.add_argument("--live",    action="store_true", help="Force live mode (real money)")
     args = ap.parse_args()
 
-    go_live = args.live
-    run(capital=args.capital, paper=not go_live)
+    # --live overrides env; --paper overrides env; neither → use env PAPER default
+    if args.live:
+        use_paper = False
+    elif args.paper:
+        use_paper = True
+    else:
+        use_paper = PAPER
+    run(capital=args.capital, paper=use_paper)
