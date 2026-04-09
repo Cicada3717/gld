@@ -29,52 +29,52 @@ def _fetch_live_gld_price():
 
 st.set_page_config(
     page_title="LFV Strategy",
-    page_icon="chart_with_upwards_trend",
+    page_icon="📈",
     layout="wide",
 )
 
 st.markdown(
     """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap');
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+<style>
 :root {
-    --bg: #f4f1ea;
-    --panel: rgba(255, 255, 255, 0.72);
-    --panel-strong: rgba(255, 255, 255, 0.88);
-    --stroke: rgba(23, 30, 47, 0.08);
-    --text: #171d2c;
-    --muted: #697487;
-    --green: #14835f;
-    --red: #c45d48;
-    --gold: #a47a1f;
-    --shadow: 0 22px 50px rgba(26, 37, 56, 0.10);
+    --bg:        #0a0a0a;
+    --card:      #111111;
+    --stroke:    #1e1e1e;
+    --gold:      #d4a843;
+    --green:     #30d158;
+    --red:       #ff453a;
+    --text:      #f5f5f7;
+    --muted:     #6e6e73;
+    --shadow:    0 1px 3px rgba(0,0,0,0.4);
+    --r-card:    12px;
+    --r-sm:      8px;
 }
 
-html, body, [class*="css"]  {
-    font-family: "DM Sans", "SF Pro Text", "Segoe UI", "Helvetica Neue", sans-serif;
+html, body, [class*="css"] {
+    font-family: -apple-system, "SF Pro Display", "Inter", sans-serif;
 }
 
 body, .stApp {
-    color: var(--text);
-    background:
-        radial-gradient(circle at top left, rgba(240, 213, 157, 0.45), transparent 28%),
-        radial-gradient(circle at top right, rgba(171, 198, 255, 0.35), transparent 24%),
-        linear-gradient(180deg, #fbfaf7 0%, #f2eee6 100%);
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
 }
 
 [data-testid="stAppViewContainer"] {
-    background: transparent;
+    background-color: var(--bg) !important;
 }
 
 [data-testid="stHeader"] {
-    background: rgba(255,255,255,0);
+    background-color: var(--bg) !important;
+    border-bottom: 1px solid var(--stroke);
 }
 
 [data-testid="stSidebar"] {
-    background: rgba(255, 255, 255, 0.58);
-    border-left: 1px solid rgba(23, 30, 47, 0.08);
-    backdrop-filter: blur(22px);
+    background-color: #0d0d0d !important;
+    border-right: 1px solid var(--stroke);
 }
 
 [data-testid="stSidebar"] > div:first-child {
@@ -82,303 +82,318 @@ body, .stApp {
 }
 
 .block-container {
-    padding-top: 2rem;
+    padding-top: 1.75rem;
     padding-bottom: 2rem;
-    max-width: 1360px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    max-width: 1400px;
 }
 
-.hero-shell {
-    position: relative;
-    overflow: hidden;
-    padding: 1.75rem 1.75rem 1.55rem 1.75rem;
-    border-radius: 30px;
-    background: linear-gradient(145deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58));
-    border: 1px solid rgba(255,255,255,0.55);
+/* ── Topbar / Hero ────────────────────────────────────────────────── */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-card);
     box-shadow: var(--shadow);
-    backdrop-filter: blur(24px);
+    margin-bottom: 1.25rem;
 }
 
-.hero-shell:before {
-    content: "";
-    position: absolute;
-    inset: -20% auto auto -10%;
-    width: 280px;
-    height: 280px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(240, 211, 142, 0.70), transparent 68%);
-    pointer-events: none;
+.topbar-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
-.hero-shell:after {
-    content: "";
-    position: absolute;
-    inset: auto -8% -28% auto;
-    width: 320px;
-    height: 320px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(151, 177, 239, 0.42), transparent 68%);
-    pointer-events: none;
-}
-
-.eyebrow {
-    position: relative;
-    z-index: 1;
-    display: inline-block;
-    padding: 0.38rem 0.7rem;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.72);
-    border: 1px solid rgba(23, 30, 47, 0.08);
-    color: var(--muted);
-    font-size: 0.77rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+.topbar-strategy {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
+    color: var(--gold);
 }
 
-.hero-grid {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.8fr);
-    gap: 1.25rem;
-    margin-top: 1rem;
-}
-
-.hero-title {
-    margin: 0.55rem 0 0.4rem 0;
-    font-family: "Instrument Serif", "Georgia", serif;
-    font-size: clamp(2.6rem, 5vw, 4.8rem);
-    line-height: 0.95;
-    letter-spacing: -0.04em;
-}
-
-.hero-copy {
-    max-width: 720px;
-    color: var(--muted);
-    font-size: 1rem;
-    line-height: 1.7;
+.topbar-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text);
     margin: 0;
 }
 
-.hero-stack {
-    display: grid;
-    gap: 0.85rem;
-}
-
-.mini-panel {
-    padding: 1rem 1.1rem;
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.62);
-    border: 1px solid rgba(23, 30, 47, 0.08);
-    backdrop-filter: blur(18px);
-}
-
-.mini-label {
-    color: var(--muted);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-}
-
-.mini-value {
-    margin-top: 0.25rem;
-    font-size: 1.7rem;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-}
-
-.mini-sub {
-    margin-top: 0.2rem;
-    color: var(--muted);
-    font-size: 0.88rem;
-}
-
-.asset-shell {
-    margin-top: 1.25rem;
-    padding: 1.2rem;
-    border-radius: 28px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.60));
-    border: 1px solid rgba(255,255,255,0.55);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(20px);
-}
-
-.asset-header {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.asset-kicker {
-    color: var(--muted);
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.asset-title {
-    margin: 0.18rem 0 0.2rem 0;
-    font-size: clamp(1.7rem, 2vw, 2.4rem);
-    letter-spacing: -0.04em;
-}
-
-.asset-meta {
-    color: var(--muted);
-    font-size: 0.95rem;
-}
-
-.badge-row {
-    display: flex;
-    gap: 0.55rem;
-    flex-wrap: wrap;
-}
-
-.soft-badge {
-    padding: 0.48rem 0.8rem;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.72);
-    border: 1px solid rgba(23, 30, 47, 0.08);
-    color: var(--muted);
+.topbar-sub {
     font-size: 0.82rem;
-    font-weight: 600;
+    color: var(--muted);
+    margin: 0;
 }
 
+.topbar-metrics {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.topbar-metric {
+    padding: 0.7rem 1.1rem;
+    background: var(--bg);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-sm);
+    text-align: right;
+    min-width: 110px;
+}
+
+.topbar-metric-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+}
+
+.topbar-metric-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+}
+
+.topbar-metric-value.pos { color: var(--green); }
+.topbar-metric-value.neg { color: var(--red); }
+.topbar-metric-value.gold { color: var(--gold); }
+
+/* ── Cards ────────────────────────────────────────────────────────── */
 .metric-card {
-    padding: 1rem 1.05rem 1.05rem 1.05rem;
-    border-radius: 24px;
-    background: var(--panel);
-    border: 1px solid rgba(23, 30, 47, 0.07);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
-    backdrop-filter: blur(16px);
+    padding: 1rem 1.1rem 1rem 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow);
 }
 
 .metric-label {
-    color: var(--muted);
-    font-size: 0.78rem;
-    text-transform: uppercase;
+    font-size: 0.68rem;
+    font-weight: 600;
     letter-spacing: 0.08em;
-    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
 }
 
 .metric-value {
-    margin-top: 0.4rem;
-    font-size: 1.75rem;
+    margin-top: 0.35rem;
+    font-size: 1.55rem;
     font-weight: 700;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.04em;
     color: var(--text);
 }
+
+.metric-value.positive { color: var(--green); }
+.metric-value.negative { color: var(--red); }
+.metric-value.neutral  { color: var(--text); }
 
 .metric-sub {
-    margin-top: 0.18rem;
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
     color: var(--muted);
-    font-size: 0.84rem;
 }
 
-.positive { color: var(--green); }
-.negative { color: var(--red); }
-.neutral { color: var(--text); }
+/* ── Zone pills ───────────────────────────────────────────────────── */
+.pill-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+}
+
+.pill {
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--stroke);
+    background: var(--bg);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+}
+
+.pill.ok    { border-color: var(--green); color: var(--green); background: rgba(48,209,88,0.07); }
+.pill.warn  { border-color: var(--red);   color: var(--red);   background: rgba(255,69,58,0.07); }
+.pill.gold  { border-color: var(--gold);  color: var(--gold);  background: rgba(212,168,67,0.08); }
+
+/* ── Section headers ──────────────────────────────────────────────── */
+.section-header {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.5rem 0 0.7rem 0;
+}
 
 .panel-title {
-    margin: 0.2rem 0 0.85rem 0;
-    font-size: 1.05rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin: 0 0 0.75rem 0;
 }
 
+/* ── Position banner ──────────────────────────────────────────────── */
 .position-banner {
-    margin: 1rem 0 1.15rem 0;
-    padding: 1rem 1.05rem;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.76), rgba(255,255,255,0.56));
-    border: 1px solid rgba(23, 30, 47, 0.08);
-    color: var(--text);
+    margin: 1rem 0 1rem 0;
+    padding: 0.9rem 1.1rem;
+    border-radius: var(--r-card);
+    border: 1px solid rgba(212,168,67,0.25);
+    background: rgba(212,168,67,0.05);
 }
 
 .position-title {
-    font-size: 0.82rem;
-    color: var(--muted);
-    text-transform: uppercase;
+    font-size: 0.68rem;
+    font-weight: 600;
     letter-spacing: 0.08em;
-    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.35rem;
 }
 
 .position-copy {
-    margin-top: 0.38rem;
-    line-height: 1.6;
+    font-size: 0.88rem;
+    line-height: 1.7;
     color: var(--text);
 }
 
+/* ── Empty states ─────────────────────────────────────────────────── */
 .empty-state {
-    padding: 1.1rem 1.15rem;
-    border-radius: 24px;
-    background: rgba(255,255,255,0.58);
-    border: 1px solid rgba(23, 30, 47, 0.08);
+    padding: 1rem 1.1rem;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--stroke);
+    background: var(--bg);
+    font-size: 0.85rem;
     color: var(--muted);
 }
 
-.divider-space {
-    height: 1rem;
+/* ── Sidebar ──────────────────────────────────────────────────────── */
+.sb-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.1rem 0 0.4rem 0;
 }
 
-.stRadio [role="radiogroup"] {
-    gap: 0.6rem;
-    padding: 0.45rem;
-    width: fit-content;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.6);
-    border: 1px solid rgba(23, 30, 47, 0.08);
-    box-shadow: var(--shadow);
-}
-
-.stRadio [role="radiogroup"] label {
-    min-width: 124px;
-    justify-content: center;
-    border-radius: 999px;
-    padding: 0.55rem 1rem;
-    background: transparent;
-    border: 1px solid transparent;
-    transition: all 180ms ease;
-}
-
-.stRadio [role="radiogroup"] label:has(input:checked) {
-    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,240,234,0.98));
-    border-color: rgba(23, 30, 47, 0.08);
-    box-shadow: 0 10px 24px rgba(26, 37, 56, 0.10);
-}
-
-.stRadio [role="radiogroup"] p {
-    font-size: 0.92rem;
+.sb-value {
+    font-size: 1.1rem;
     font-weight: 700;
+    letter-spacing: -0.02em;
     color: var(--text);
 }
 
-div[data-testid="stHorizontalBlock"] > div {
-    gap: 0.8rem;
+.sb-badge {
+    display: inline-block;
+    padding: 0.22rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
+.sb-badge.live   { background: rgba(48,209,88,0.12);  color: var(--green); border: 1px solid rgba(48,209,88,0.25); }
+.sb-badge.paper  { background: rgba(212,168,67,0.12); color: var(--gold);  border: 1px solid rgba(212,168,67,0.25); }
+.sb-badge.replay { background: rgba(110,110,115,0.12); color: var(--muted); border: 1px solid var(--stroke); }
+
+.sb-filter {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.9;
+    padding-left: 0;
+    list-style: none;
+    margin: 0;
+}
+
+.sb-filter li::before {
+    content: "–  ";
+    color: var(--stroke);
+}
+
+.sb-divider {
+    height: 1px;
+    background: var(--stroke);
+    margin: 1rem 0;
+}
+
+/* ── Dataframe dark override ──────────────────────────────────────── */
 div[data-testid="stDataFrame"] {
-    border-radius: 22px;
+    border-radius: var(--r-card);
     overflow: hidden;
-    border: 1px solid rgba(23, 30, 47, 0.08);
-    background: rgba(255,255,255,0.70);
+    border: 1px solid var(--stroke) !important;
 }
 
-@media (max-width: 980px) {
-    .hero-grid {
-        grid-template-columns: 1fr;
-    }
-    .asset-header {
-        flex-direction: column;
-        align-items: start;
-    }
-    .stRadio [role="radiogroup"] {
-        width: 100%;
-    }
+div[data-testid="stDataFrame"] iframe {
+    border-radius: var(--r-card);
 }
+
+/* ── Plotly chart containers ──────────────────────────────────────── */
+div[data-testid="stPlotlyChart"] {
+    border-radius: var(--r-card);
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    box-shadow: var(--shadow);
+}
+
+/* ── Streamlit button ─────────────────────────────────────────────── */
+.stButton > button {
+    background: var(--card) !important;
+    border: 1px solid var(--stroke) !important;
+    color: var(--text) !important;
+    border-radius: var(--r-sm) !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    padding: 0.45rem 1rem !important;
+    transition: border-color 150ms ease, background 150ms ease;
+}
+
+.stButton > button:hover {
+    border-color: var(--gold) !important;
+    background: rgba(212,168,67,0.07) !important;
+}
+
+/* ── Streamlit metric widget ──────────────────────────────────────── */
+[data-testid="metric-container"] {
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-card);
+    padding: 0.75rem 1rem;
+}
+
+[data-testid="metric-container"] label {
+    color: var(--muted) !important;
+    font-size: 0.68rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600 !important;
+}
+
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: var(--text) !important;
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.03em !important;
+}
+
+[data-testid="metric-container"] [data-testid="stMetricDelta"] {
+    font-size: 0.75rem !important;
+}
+
+/* ── Misc cleanup ─────────────────────────────────────────────────── */
+.stMarkdown p { color: var(--muted); font-size: 0.85rem; }
+div[data-testid="stHorizontalBlock"] { gap: 0.75rem; }
+.divider-space { height: 1.25rem; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -390,13 +405,13 @@ ASSETS = {
     "GC=F": {
         "label": "GLD",
         "name": "Gold ETF (Alpaca live)",
-        "state": DATA_DIR / "zone_state.json",    # replay → paper trader state
-        "trades": DATA_DIR / "zone_trades.csv",   # replay → paper trader log
+        "state": DATA_DIR / "zone_state.json",
+        "trades": DATA_DIR / "zone_trades.csv",
         "timeframe": "1H bars",
         "schedule": "Sun 18:00 ET to Fri 17:00 ET",
         "signal": "Supply & Demand zone refinement — ATR regime + crash filter + hour filter",
         "params": "min_rr=2.5  trail_act=2.5R  trail_dist=0.15R  slope=8  max2/day  72H-crash-filter",
-        "accent": "#a47a1f",
+        "accent": "#d4a843",
         "title": "Zone Strategy — GC=F (from Mar 18)",
     },
 }
@@ -528,47 +543,37 @@ def build_snapshot(asset_key):
 
 
 def render_hero(snapshot):
-    cfg        = snapshot["cfg"]
-    open_pos   = snapshot["open_pos"]
     live_price = snapshot.get("live_price")
-    unreal_pnl = snapshot.get("unreal_pnl")
-
-    open_status = "Open trade" if open_pos else "No open trade"
-    qty_val = open_pos.get("qty", open_pos.get("shares", "?")) if open_pos else "?"
-    open_sub = (
-        f"{open_pos.get('dir','?')} {format_units(qty_val)} shares "
-        f"@ ${open_pos.get('entry',0):,.2f}"
-        + (f" | Unreal: {format_signed_money(unreal_pnl)}" if unreal_pnl is not None else "")
-        if open_pos else "Watching for the next signal"
-    )
-
-    live_str = f"${live_price:,.2f}" if live_price else "market closed"
+    live_str   = f"${live_price:,.2f}" if live_price else "Closed"
+    roi_val    = snapshot["roi"]
+    roi_cls    = "pos" if roi_val > 0 else ("neg" if roi_val < 0 else "gold")
+    pnl_cls    = "pos" if snapshot["total_pnl"] > 0 else ("neg" if snapshot["total_pnl"] < 0 else "gold")
+    updated    = datetime.now().strftime("%H:%M:%S")
 
     st.markdown(
         f"""
-<div class="hero-shell">
-  <div class="eyebrow">GC=F Zone Strategy — replaying from Mar 18 2026</div>
-  <div class="hero-grid">
-      <div>
-        <div class="hero-title">{cfg['title']}</div>
-        <p class="hero-copy">GLD live: {live_str} &nbsp;|&nbsp; Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-      </div>
-    <div class="hero-stack">
-      <div class="mini-panel">
-        <div class="mini-label">Today's P&amp;L</div>
-        <div class="mini-value">{format_signed_money(snapshot["today_pnl"])}</div>
-        <div class="mini-sub">{snapshot["today_trades"]} closed trades on {snapshot["today_date"]}</div>
-      </div>
-      <div class="mini-panel">
-        <div class="mini-label">Balance</div>
-        <div class="mini-value">{format_money(snapshot["balance"])}</div>
-        <div class="mini-sub">{format_signed_money(snapshot["total_pnl"])} total | win rate {snapshot["win_rate"]:.1f}%</div>
-      </div>
-      <div class="mini-panel">
-        <div class="mini-label">{open_status}</div>
-        <div class="mini-value">{"LIVE" if open_pos else "FLAT"}</div>
-        <div class="mini-sub">{open_sub}</div>
-      </div>
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-strategy">GC=F &nbsp;·&nbsp; Zone Refinement Strategy</div>
+    <div class="topbar-title">LFV Dashboard</div>
+    <div class="topbar-sub">GLD live&nbsp;&nbsp;{live_str}&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;Updated {updated}</div>
+  </div>
+  <div class="topbar-metrics">
+    <div class="topbar-metric">
+      <div class="topbar-metric-label">Balance</div>
+      <div class="topbar-metric-value gold">{format_money(snapshot["balance"])}</div>
+    </div>
+    <div class="topbar-metric">
+      <div class="topbar-metric-label">ROI</div>
+      <div class="topbar-metric-value {roi_cls}">{format_pct(roi_val)}</div>
+    </div>
+    <div class="topbar-metric">
+      <div class="topbar-metric-label">Win Rate</div>
+      <div class="topbar-metric-value {'pos' if snapshot['win_rate'] >= 50 else 'neg'}">{snapshot["win_rate"]:.1f}%</div>
+    </div>
+    <div class="topbar-metric">
+      <div class="topbar-metric-label">Trades</div>
+      <div class="topbar-metric-value">{snapshot["n_trades"]}</div>
     </div>
   </div>
 </div>
@@ -582,20 +587,22 @@ def render_position_banner(snapshot):
     live_price = snapshot.get("live_price")
     unreal_pnl = snapshot.get("unreal_pnl")
     qty_val    = open_pos.get("qty", open_pos.get("shares", "?"))
-    unreal_str = f" | Unrealised P&L: <b>{format_signed_money(unreal_pnl)}</b>" if unreal_pnl is not None else ""
-    live_str   = f" | GLD now: <b>${live_price:,.2f}</b>" if live_price else ""
+    unreal_str = f"&nbsp;&nbsp;·&nbsp;&nbsp;Unrealised <b>{format_signed_money(unreal_pnl)}</b>" if unreal_pnl is not None else ""
+    live_str   = f"&nbsp;&nbsp;·&nbsp;&nbsp;GLD <b>${live_price:,.2f}</b>" if live_price else ""
     copy = (
-        f"{open_pos.get('dir', '?')} {format_units(qty_val)} shares "
-        f"@ ${open_pos.get('entry', 0):,.2f} "
-        f"| Stop ${open_pos.get('stop', 0):,.2f} "
-        f"| Target ${open_pos.get('target', 0):,.2f}<br>"
-        f"Entered {open_pos.get('entry_time', '?')} | Zone: {open_pos.get('zone_type', '?')}"
-        f"{live_str}{unreal_str}"
+        f"{open_pos.get('dir', '?')} &nbsp;{format_units(qty_val)} shares "
+        f"@ ${open_pos.get('entry', 0):,.2f}"
+        f"&nbsp;&nbsp;·&nbsp;&nbsp;Stop ${open_pos.get('stop', 0):,.2f}"
+        f"&nbsp;&nbsp;·&nbsp;&nbsp;Target ${open_pos.get('target', 0):,.2f}<br>"
+        f"<span style='color:var(--muted);font-size:0.8rem'>"
+        f"Entered {open_pos.get('entry_time', '?')}"
+        f"&nbsp;&nbsp;·&nbsp;&nbsp;Zone: {open_pos.get('zone_type', '?')}"
+        f"{live_str}{unreal_str}</span>"
     )
     st.markdown(
         f"""
 <div class="position-banner">
-  <div class="position-title">Open position</div>
+  <div class="position-title">Open Position</div>
   <div class="position-copy">{copy}</div>
 </div>
 """,
@@ -623,45 +630,48 @@ def render_equity_curve(snapshot):
             x=eq["dt"],
             y=eq["balance"],
             mode="lines+markers",
-            line=dict(color="#1f6f5d", width=3),
+            line=dict(color="#d4a843", width=2),
             marker=dict(
-                size=8,
-                color=["#1f8c69" if p > 0 else "#c45d48" for p in eq["pnl"].fillna(0)],
-                line=dict(width=1, color="rgba(255,255,255,0.75)"),
+                size=6,
+                color=["#30d158" if p > 0 else "#ff453a" for p in eq["pnl"].fillna(0)],
+                line=dict(width=1, color="rgba(255,255,255,0.1)"),
             ),
             fill="tozeroy",
-            fillcolor="rgba(31, 111, 93, 0.08)",
+            fillcolor="rgba(212,168,67,0.06)",
             hovertemplate="<b>%{x}</b><br>Balance %{y:$,.2f}<extra></extra>",
         )
     )
     fig.add_hline(
         y=snapshot["initial"],
         line_dash="dot",
-        line_color="rgba(105,116,135,0.8)",
+        line_color="rgba(110,110,115,0.5)",
         annotation_text=f"Start {format_money(snapshot['initial'])}",
+        annotation_font_color="#6e6e73",
         annotation_position="top left",
     )
     fig.update_layout(
-        height=320,
-        margin=dict(l=8, r=8, t=8, b=8),
-        paper_bgcolor="rgba(255,255,255,0.0)",
-        plot_bgcolor="rgba(255,255,255,0.0)",
+        height=300,
+        margin=dict(l=12, r=12, t=12, b=12),
+        paper_bgcolor="#111111",
+        plot_bgcolor="#111111",
         xaxis=dict(
             title="",
             showgrid=True,
-            gridcolor="rgba(23,30,47,0.08)",
+            gridcolor="rgba(255,255,255,0.04)",
             zeroline=False,
-            color="#5d6778",
+            color="#6e6e73",
+            tickfont=dict(size=11, color="#6e6e73"),
         ),
         yaxis=dict(
             title="",
             showgrid=True,
-            gridcolor="rgba(23,30,47,0.08)",
+            gridcolor="rgba(255,255,255,0.04)",
             zeroline=False,
             tickprefix="$",
-            color="#5d6778",
+            color="#6e6e73",
+            tickfont=dict(size=11, color="#6e6e73"),
         ),
-        font=dict(color="#171d2c", family="DM Sans, sans-serif"),
+        font=dict(color="#6e6e73", family="-apple-system, 'SF Pro Display', 'Inter', sans-serif"),
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -682,17 +692,12 @@ def build_trade_table(df):
             entry_price = entry["price"] if entry is not None else None
             rows.append(
                 {
-                    "Date": row["date"],
-                    "Entry": entry["time"] if entry is not None else "",
-                    "Exit": row["time"],
-                    "Dir": entry["dir"] if entry is not None else row.get("dir", ""),
-                    "Units": format_units(entry["shares"] if entry is not None else row.get("shares", 0)),
-                    "Entry $": f"${float(entry_price):,.3f}" if entry_price is not None and pd.notna(entry_price) else "---",
-                    "Exit $": f"${row['price']:,.3f}" if pd.notna(row.get("price")) else "---",
-                    "Stop $": f"${float(entry['stop']):,.3f}" if entry is not None and pd.notna(entry.get("stop")) else "---",
-                    "Net P&L": f"${pnl_val:+,.2f}" if pd.notna(pnl_val) else "---",
-                    "Balance": f"${row['balance']:,.2f}" if pd.notna(row.get("balance")) else "---",
-                    "Reason": row.get("reason", ""),
+                    "Date":   row["date"],
+                    "Dir":    entry["dir"] if entry is not None else row.get("dir", ""),
+                    "Entry":  f"${float(entry_price):,.3f}" if entry_price is not None and pd.notna(entry_price) else "---",
+                    "Exit":   f"${row['price']:,.3f}" if pd.notna(row.get("price")) else "---",
+                    "Stop":   f"${float(entry['stop']):,.3f}" if entry is not None and pd.notna(entry.get("stop")) else "---",
+                    "P&L":    f"${pnl_val:+,.2f}" if pd.notna(pnl_val) else "---",
                     "Result": "WIN" if (pd.notna(pnl_val) and pnl_val > 0) else "LOSS",
                 }
             )
@@ -701,7 +706,7 @@ def build_trade_table(df):
 
 def render_trade_table(snapshot):
     closed = snapshot["closed"]
-    st.markdown('<div class="panel-title">Closed Trades</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Trade Log</div>', unsafe_allow_html=True)
     if closed.empty:
         st.markdown(
             '<div class="empty-state">No closed trades yet. The table will populate after the first completed position.</div>',
@@ -711,25 +716,40 @@ def render_trade_table(snapshot):
 
     table = build_trade_table(snapshot["df"])
 
+    def color_row(row):
+        if row["Result"] == "WIN":
+            return ["background-color:rgba(48,209,88,0.07)"] * len(row)
+        return ["background-color:rgba(255,69,58,0.06)"] * len(row)
+
     def color_result(val):
         if "WIN" in str(val):
-            return "color:#14835f;font-weight:700"
+            return "color:#30d158;font-weight:700"
         if "LOSS" in str(val):
-            return "color:#c45d48;font-weight:700"
+            return "color:#ff453a;font-weight:700"
         return ""
 
     def color_pnl(val):
         try:
             parsed = float(str(val).replace("$", "").replace(",", "").replace("+", ""))
-            return "color:#14835f" if parsed > 0 else "color:#c45d48"
+            return "color:#30d158;font-weight:600" if parsed > 0 else "color:#ff453a;font-weight:600"
         except Exception:
             return ""
 
     try:
-        styled = table.style.map(color_result, subset=["Result"]).map(color_pnl, subset=["Net P&L"])
+        styled = (
+            table.style
+            .apply(color_row, axis=1)
+            .map(color_result, subset=["Result"])
+            .map(color_pnl, subset=["P&L"])
+        )
     except AttributeError:
-        styled = table.style.applymap(color_result, subset=["Result"]).applymap(color_pnl, subset=["Net P&L"])
-    st.dataframe(styled, width="stretch", height=360)
+        styled = (
+            table.style
+            .apply(color_row, axis=1)
+            .applymap(color_result, subset=["Result"])
+            .applymap(color_pnl, subset=["P&L"])
+        )
+    st.dataframe(styled, width="stretch", height=340)
 
 
 def render_daily_pnl(snapshot):
@@ -743,66 +763,58 @@ def render_daily_pnl(snapshot):
         return
 
     daily = closed.groupby("date")["pnl"].sum().reset_index()
-    colors = ["#14835f" if v > 0 else "#c45d48" for v in daily["pnl"]]
+    colors = ["#30d158" if v > 0 else "#ff453a" for v in daily["pnl"]]
     fig = go.Figure(
         go.Bar(
             x=daily["date"],
             y=daily["pnl"],
-            marker=dict(color=colors, line=dict(color="rgba(255,255,255,0.7)", width=1)),
+            marker=dict(color=colors, line=dict(color="rgba(255,255,255,0.04)", width=0.5)),
             hovertemplate="<b>%{x}</b><br>P&L %{y:$+,.2f}<extra></extra>",
         )
     )
     fig.update_layout(
-        height=280,
-        margin=dict(l=8, r=8, t=8, b=8),
-        paper_bgcolor="rgba(255,255,255,0.0)",
-        plot_bgcolor="rgba(255,255,255,0.0)",
-        xaxis=dict(showgrid=False, color="#5d6778"),
-        yaxis=dict(showgrid=True, gridcolor="rgba(23,30,47,0.08)", tickprefix="$", color="#5d6778"),
-        font=dict(color="#171d2c", family="DM Sans, sans-serif"),
+        height=300,
+        margin=dict(l=12, r=12, t=12, b=12),
+        paper_bgcolor="#111111",
+        plot_bgcolor="#111111",
+        xaxis=dict(
+            showgrid=False,
+            color="#6e6e73",
+            tickfont=dict(size=11, color="#6e6e73"),
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="rgba(255,255,255,0.04)",
+            tickprefix="$",
+            color="#6e6e73",
+            tickfont=dict(size=11, color="#6e6e73"),
+        ),
+        font=dict(color="#6e6e73", family="-apple-system, 'SF Pro Display', 'Inter', sans-serif"),
     )
     st.plotly_chart(fig, width="stretch")
 
 
 def render_asset(snapshot, asset_key):
-    cfg = snapshot["cfg"]
-    st.markdown(
-        f"""
-<div class="asset-shell">
-  <div class="asset-header">
-    <div>
-      <div class="asset-kicker">{cfg['label']}</div>
-      <div class="asset-title">{cfg['name']}</div>
-      <div class="asset-meta">{cfg['signal']}</div>
-    </div>
-    <div class="badge-row">
-      <div class="soft-badge">{cfg['timeframe']}</div>
-      <div class="soft-badge">{cfg['schedule']}</div>
-      <div class="soft-badge">{cfg['params']}</div>
-    </div>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
+    # Metric row
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    card(c1, "Balance", format_money(snapshot["balance"]), "Live marked balance", tone_class(snapshot["total_pnl"]))
-    card(c2, "Net P&L", format_signed_money(snapshot["total_pnl"]), "Versus starting capital", tone_class(snapshot["total_pnl"]))
-    card(c3, "ROI", format_pct(snapshot["roi"]), "Portfolio return", tone_class(snapshot["roi"]))
-    card(c4, "Trades", str(snapshot["n_trades"]), "Closed positions", "neutral")
-    card(c5, "Win rate", f"{snapshot['win_rate']:.1f}%", f"{snapshot['wins']} wins / {snapshot['losses']} losses", tone_class(snapshot["win_rate"], 50))
-    card(c6, "Status", "Active" if snapshot["open_pos"] else "Monitoring", "Position manager state", "neutral")
+    card(c1, "Balance",  format_money(snapshot["balance"]),          "Live balance",                   tone_class(snapshot["total_pnl"]))
+    card(c2, "Net P&L",  format_signed_money(snapshot["total_pnl"]), "vs starting capital",            tone_class(snapshot["total_pnl"]))
+    card(c3, "ROI",      format_pct(snapshot["roi"]),                "Portfolio return",               tone_class(snapshot["roi"]))
+    card(c4, "Trades",   str(snapshot["n_trades"]),                  "Closed positions",               "neutral")
+    card(c5, "Win Rate", f"{snapshot['win_rate']:.1f}%",             f"{snapshot['wins']}W / {snapshot['losses']}L", tone_class(snapshot["win_rate"], 50))
+    card(c6, "Status",   "LIVE" if snapshot["open_pos"] else "FLAT", "Position manager state",         "neutral")
 
     if snapshot["open_pos"]:
         render_position_banner(snapshot)
 
-    left, right = st.columns([1.45, 1])
+    # Charts row
+    left, right = st.columns([1.55, 1])
     with left:
         render_equity_curve(snapshot)
     with right:
         render_daily_pnl(snapshot)
 
+    st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
     render_trade_table(snapshot)
     st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
 
@@ -810,30 +822,37 @@ def render_asset(snapshot, asset_key):
 def render_sidebar():
     cfg = ASSETS["GC=F"]
     with st.sidebar:
-        st.markdown("## Strategy Notes")
         st.markdown(
-            f"""
-**{cfg['label']} — {cfg['name']}**
-Timeframe: {cfg['timeframe']}
-Schedule: {cfg['schedule']}
-Signal: {cfg['signal']}
-Parameters: `{cfg['params']}`
-"""
+            '<div class="sb-label">Mode</div>'
+            '<span class="sb-badge replay">Replay — Mar 18 2026</span>',
+            unsafe_allow_html=True,
         )
-        st.markdown("---")
-        st.markdown("**Filters active**")
+
+        snapshot = build_snapshot("GC=F")
         st.markdown(
-            "- ATR regime 0.85–1.2× (no low/spike vol)\n"
-            "- Skip body 0.3–0.7× ATR (weak confirm)\n"
-            "- Block hours 7,10,11,12,15,19 UTC\n"
-            "- 72H crash filter: no LONG if 72H drop > 1.5%"
+            f'<div class="sb-label">Balance</div>'
+            f'<div class="sb-value">{format_money(snapshot["balance"])}</div>',
+            unsafe_allow_html=True,
         )
-        st.markdown("---")
+
+        st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
+
+        st.markdown(
+            '<div class="sb-label">Active Filters</div>'
+            '<ul class="sb-filter">'
+            '<li>ATR regime 0.85 – 1.2×</li>'
+            '<li>Body confirm 0.3 – 0.7× ATR</li>'
+            '<li>Block hours 7,10,11,12,15,19 UTC</li>'
+            '<li>72H crash: no LONG if drop &gt; 1.5%</li>'
+            '</ul>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
 
         # ── Alpaca live execution status ──────────────────────────────
-        st.markdown("**Alpaca Live Execution**")
+        st.markdown('<div class="sb-label">Alpaca Live Status</div>', unsafe_allow_html=True)
         alpaca_state_path = DATA_DIR / "alpaca_state.json"
-        alpaca_trades_path = DATA_DIR / "alpaca_trades.csv"
         if alpaca_state_path.exists():
             try:
                 with open(alpaca_state_path) as _f:
@@ -843,28 +862,49 @@ Parameters: `{cfg['params']}`
                 _trades = _as.get("total_trades", 0)
                 _pnl    = _as.get("total_pnl", 0)
                 _pos    = _as.get("position")
-                _pos_str = (f"{_pos['dir']} {_pos.get('qty','')} shares "
-                            f"@ ${_pos.get('entry',0):.2f}" if _pos else "Flat")
+                _pos_str = (f"{_pos['dir']} {_pos.get('qty','')} @ ${_pos.get('entry',0):.2f}" if _pos else "Flat")
+                badge_cls = "live" if _mode == "LIVE" else "paper"
                 st.markdown(
-                    f"Mode: `{_mode}` | Capital: `${_as.get('capital',0):,.0f}`\n\n"
-                    f"Balance: `${_bal:,.2f}` | P&L: `${_pnl:+,.2f}`\n\n"
-                    f"Trades: `{_trades}` | Position: `{_pos_str}`"
+                    f'<span class="sb-badge {badge_cls}">{_mode}</span>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    f'<div style="font-size:0.8rem;color:var(--muted);line-height:2;margin-top:0.4rem">'
+                    f'Balance&nbsp;&nbsp;<span style="color:var(--text);font-weight:600">${_bal:,.2f}</span><br>'
+                    f'P&amp;L&nbsp;&nbsp;<span style="color:{"var(--green)" if _pnl >= 0 else "var(--red)"};font-weight:600">${_pnl:+,.2f}</span><br>'
+                    f'Trades&nbsp;&nbsp;<span style="color:var(--text);font-weight:600">{_trades}</span><br>'
+                    f'Position&nbsp;&nbsp;<span style="color:var(--text);font-weight:600">{_pos_str}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
                 )
             except Exception:
-                st.markdown("_Alpaca state unreadable_")
+                st.markdown('<span style="color:var(--muted);font-size:0.8rem">State unreadable</span>', unsafe_allow_html=True)
         else:
-            st.markdown("_No Alpaca trades yet — waiting for market open_")
+            st.markdown('<span style="color:var(--muted);font-size:0.8rem">Waiting for market open</span>', unsafe_allow_html=True)
 
         live_price = _fetch_live_gld_price()
         if live_price:
-            st.markdown(f"GLD live price: **${live_price:,.2f}**")
+            st.markdown(
+                f'<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--muted)">'
+                f'GLD&nbsp;&nbsp;<span style="color:var(--gold);font-weight:700">${live_price:,.2f}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
-        st.markdown("---")
-        st.markdown(f"**Last refresh**  \n{datetime.now().strftime('%H:%M:%S')}")
-        if st.button("Refresh now", use_container_width=False):
+        st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
+
+        st.markdown(
+            f'<div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.6rem">'
+            f'Last refresh&nbsp;&nbsp;{datetime.now().strftime("%H:%M:%S")}</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Refresh", use_container_width=False):
             st.rerun()
-        st.markdown("Auto-refresh every 60 seconds.")
-        st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
+        st.markdown(
+            '<div style="font-size:0.72rem;color:var(--muted);margin-top:0.4rem">Auto-refresh every 60s</div>'
+            '<meta http-equiv="refresh" content="60">',
+            unsafe_allow_html=True,
+        )
 
 
 def render_zone_levels():
@@ -928,43 +968,55 @@ def render_zone_levels():
         f_body = abs(float(df1h["Close"].iloc[-1]) - float(df1h["Open"].iloc[-1])) / f_atr if f_atr > 0 else 0
         f_bull = float(df1h["Close"].iloc[-1]) >= float(df1h["Open"].iloc[-1])
 
-        # Current conditions summary
-        bos_str   = "Bullish" if bull else ("Bearish" if bear else "Neutral")
-        atr_ok    = FILTER_ATR_LOW <= f_ratio <= FILTER_ATR_HIGH
-        hour_ok   = dt.hour not in FILTER_BAD_HOURS
-        crash_ok  = t72p >= FILTER_TREND_PCT
+        # Current conditions
+        bos_str  = "Bullish" if bull else ("Bearish" if bear else "Neutral")
+        atr_ok   = FILTER_ATR_LOW <= f_ratio <= FILTER_ATR_HIGH
+        hour_ok  = dt.hour not in FILTER_BAD_HOURS
+        crash_ok = t72p >= FILTER_TREND_PCT
 
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("GC=F Price", f"${price:,.1f}")
-        c2.metric("BOS", bos_str, delta=None)
-        c3.metric("ATR Regime", f"{f_ratio:.2f}x", delta="OK" if atr_ok else "BLOCKED")
-        c4.metric("72H Trend", f"{t72p*100:+.1f}%", delta="OK" if crash_ok else "BLOCKED")
-        c5.metric("Hour UTC", str(dt.hour), delta="OK" if hour_ok else "BLOCKED")
+        # Pill row
+        price_pill  = f"Price ${price:,.1f}"
+        bos_pill    = f"BOS {bos_str}"
+        atr_pill    = f"ATR {f_ratio:.2f}×"
+        t72_pill    = f"72H {t72p*100:+.1f}%"
+        hour_pill   = f"Hour {dt.hour}:00"
 
-        st.markdown(f"*Last bar: {str(ts)[:16]} UTC  |  Active zones: {len(active)}*")
-        st.markdown("---")
+        atr_cls   = "ok" if atr_ok   else "warn"
+        t72_cls   = "ok" if crash_ok else "warn"
+        hour_cls  = "ok" if hour_ok  else "warn"
+        bos_cls   = "ok" if (bull or bear) else "gold"
 
-        # Build zone table
+        st.markdown(
+            f'<div class="pill-row">'
+            f'<span class="pill gold">{price_pill}</span>'
+            f'<span class="pill {bos_cls}">{bos_pill}</span>'
+            f'<span class="pill {atr_cls}">{atr_pill}</span>'
+            f'<span class="pill {t72_cls}">{t72_pill}</span>'
+            f'<span class="pill {hour_cls}">{hour_pill}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Zone table (max 8 rows)
         rows = []
-        for z in sorted(active, key=lambda z: abs(price - (z["htf_top"]+z["htf_bottom"])/2))[:10]:
-            mid  = (z["htf_top"] + z["htf_bottom"]) / 2
-            dist = price - mid
+        for z in sorted(active, key=lambda z: abs(price - (z["htf_top"]+z["htf_bottom"])/2))[:8]:
+            mid   = (z["htf_top"] + z["htf_bottom"]) / 2
+            dist  = price - mid
             inside = z["htf_bottom"] <= price <= z["htf_top"]
-            loc    = "◀ INSIDE" if inside else ("▲ above" if price > z["htf_top"] else "▼ below")
+            loc    = "INSIDE" if inside else ("above" if price > z["htf_top"] else "below")
 
-            # Check if signal would fire
             blocks = []
             if z["type"] == "demand":
-                if not bull:       blocks.append("BOS↓")
-                if trend20 < 0:    blocks.append("trend20-")
+                if not bull:       blocks.append("BOS")
+                if trend20 < 0:    blocks.append("trend")
                 if t72p < FILTER_TREND_PCT: blocks.append("crash")
             else:
-                if not bear:       blocks.append("BOS↑")
-                if trend20 > 0:    blocks.append("trend20+")
-            if not atr_ok:         blocks.append(f"ATR {f_ratio:.2f}")
-            if dt.hour in FILTER_BAD_HOURS: blocks.append(f"hr{dt.hour}")
+                if not bear:       blocks.append("BOS")
+                if trend20 > 0:    blocks.append("trend")
+            if not atr_ok:         blocks.append(f"ATR")
+            if dt.hour in FILTER_BAD_HOURS: blocks.append(f"hr")
             signed = f_body if (z["type"]=="demand" and f_bull) or (z["type"]=="supply" and not f_bull) else -f_body
-            if FILTER_BODY_LOW <= signed < FILTER_BODY_HIGH: blocks.append(f"body")
+            if FILTER_BODY_LOW <= signed < FILTER_BODY_HIGH: blocks.append("body")
 
             if inside and not blocks:
                 signal = "SIGNAL READY"
@@ -974,28 +1026,37 @@ def render_zone_levels():
                 signal = "—"
 
             rows.append({
-                "Type":    z["type"].upper(),
-                "HTF Zone":f"${z['htf_bottom']:,.0f} – ${z['htf_top']:,.0f}",
-                "Entry (refined)": f"${z['refined_bottom']:,.1f} – ${z['refined_top']:,.1f}",
-                "Dist $":  f"{dist:+,.1f}",
-                "Location":loc,
-                "Signal":  signal,
+                "Type":       z["type"].upper(),
+                "Zone Range": f"${z['htf_bottom']:,.0f} – ${z['htf_top']:,.0f}",
+                "Entry Range":f"${z['refined_bottom']:,.1f} – ${z['refined_top']:,.1f}",
+                "Distance":   f"{dist:+,.1f}",
+                "Status":     loc,
+                "Signal":     signal,
             })
 
         df_zones = pd.DataFrame(rows)
 
-        def color_rows(row):
-            base = "background-color:#1a2e1a;color:#14835f" if row["Type"] == "DEMAND" \
-                   else "background-color:#2e1a1a;color:#c45d48"
+        def color_zone_rows(row):
+            if row["Type"] == "DEMAND":
+                base = "background-color:rgba(48,209,88,0.05);color:#f5f5f7"
+            else:
+                base = "background-color:rgba(255,69,58,0.05);color:#f5f5f7"
             styles = [base] * len(row)
             if "SIGNAL READY" in row["Signal"]:
-                styles[-1] = "background-color:#14835f;color:#fff;font-weight:700"
+                styles[-1] = "background-color:rgba(48,209,88,0.2);color:#30d158;font-weight:700"
             elif "Blocked" in row["Signal"]:
-                styles[-1] = "color:#888"
+                styles[-1] = "color:#6e6e73"
             return styles
 
-        styled = df_zones.style.apply(color_rows, axis=1)
-        st.dataframe(styled, width="stretch", height=380)
+        styled = df_zones.style.apply(color_zone_rows, axis=1)
+        st.dataframe(styled, width="stretch", height=320)
+
+        st.markdown(
+            f'<div style="font-size:0.72rem;color:var(--muted);margin-top:0.4rem">'
+            f'Last bar: {str(ts)[:16]} UTC&nbsp;&nbsp;·&nbsp;&nbsp;Active zones: {len(active)}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     except Exception as e:
         st.warning(f"Zone data unavailable: {e}")
@@ -1004,8 +1065,8 @@ def render_zone_levels():
 # ── Main render ──────────────────────────────────────────────────────────────
 snapshot = build_snapshot("GC=F")
 render_hero(snapshot)
-st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Zones</div>', unsafe_allow_html=True)
 render_zone_levels()
-st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Performance</div>', unsafe_allow_html=True)
 render_asset(snapshot, "GC=F")
 render_sidebar()
