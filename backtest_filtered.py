@@ -207,13 +207,13 @@ for ts, row in df1h[df1h.index >= replay_start].iterrows():
             # For demand (LONG), body_pct confirmation = bullish candle body ratio
             signed_body = body_pct if body_dir >= 0 else -body_pct  # positive = confirming for LONG
             if dt.hour in BAD_HOURS:
-                skip_reasons["hour"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+                skip_reasons["hour"] += 1; break
             if not (ATR_LOW <= atr_ratio <= ATR_HIGH):
-                skip_reasons["atr"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+                skip_reasons["atr"] += 1; break
             if BODY_SKIP_LOW <= signed_body < BODY_SKIP_HIGH:
-                skip_reasons["body"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+                skip_reasons["body"] += 1; break
             if trend_72h_pct < TREND_PCT_MIN:
-                skip_reasons["trend"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+                skip_reasons["trend"] += 1; break
             # ─────────────────────────────────────────────────────────────
 
             ef = efill(price,"LONG")
@@ -236,11 +236,11 @@ for ts, row in df1h[df1h.index >= replay_start].iterrows():
             # For supply (SHORT), confirming body = bearish candle (body_dir < 0)
             signed_body = body_pct if body_dir <= 0 else -body_pct  # positive = confirming for SHORT
             if dt.hour in BAD_HOURS:
-                skip_reasons["hour"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+                skip_reasons["hour"] += 1; break
             if not (ATR_LOW <= atr_ratio <= ATR_HIGH):
-                skip_reasons["atr"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+                skip_reasons["atr"] += 1; break
             if BODY_SKIP_LOW <= signed_body < BODY_SKIP_HIGH:
-                skip_reasons["body"] += 1; zone["consumed"]=True; zone["consumed_date"]=ds; break
+                skip_reasons["body"] += 1; break
             # ─────────────────────────────────────────────────────────────
 
             ef = efill(price,"SHORT")

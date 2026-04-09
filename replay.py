@@ -306,13 +306,13 @@ def replay_zone(df1h, zones):
                 # Entry filters
                 signed_body = f_body_pct if f_body_bull else -f_body_pct
                 if dt.hour in FILTER_BAD_HOURS:
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                    break
                 if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                    break
                 if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                    break
                 if trend_72h_pct < FILTER_TREND_PCT:
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                    break
 
                 entry_fill = _entry_fill(price, "LONG")
                 position = {
@@ -362,11 +362,11 @@ def replay_zone(df1h, zones):
                 # Entry filters
                 signed_body = f_body_pct if not f_body_bull else -f_body_pct
                 if dt.hour in FILTER_BAD_HOURS:
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                    break
                 if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                    break
                 if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
-                    zone["consumed"] = True; zone["consumed_date"] = date_str; break
+                    break
 
                 entry_fill = _entry_fill(price, "SHORT")
                 position = {
