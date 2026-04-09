@@ -867,9 +867,145 @@ Parameters: `{cfg['params']}`
         st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
 
 
+def render_zone_levels():
+    """Live nearest zone levels panel — fetches fresh GC=F data each render."""
+    st.markdown('<div class="panel-title">Nearest Entry Zones — GC=F Live</div>', unsafe_allow_html=True)
+    try:
+        import yfinance as yf
+        import numpy as np
+        from zone_refinement_backtest import detect_zones, _clean
+
+        FILTER_ATR_LOW=0.85; FILTER_ATR_HIGH=1.20
+        FILTER_BODY_LOW=0.30; FILTER_BODY_HIGH=0.70
+        FILTER_BAD_HOURS={7,10,11,12,15,19}
+        FILTER_TREND_PCT=-0.015; FILTER_TREND_BARS=72
+
+        end  = pd.Timestamp.now()
+        start= end - pd.DateOffset(months=6)
+        df1h = _clean(yf.download("GC=F", start=start.strftime("%Y-%m-%d"),
+                                   end=end.strftime("%Y-%m-%d"),
+                                   interval="1h", progress=False))
+        if df1h.empty:
+            st.info("Waiting for GC=F data…")
+            return
+
+        df4h = (df1h.resample("4h")
+                .agg({"Open":"first","High":"max","Low":"min","Close":"last","Volume":"sum"})
+                .dropna())
+        zones = detect_zones(df4h, df1h, strength_bars=3, strength_mult=1.5)
+        active = [z for z in zones if not z.get("consumed")]
+
+        closes = df1h["Close"].tolist()
+        highs  = df1h["High"].tolist()
+        lows   = df1h["Low"].tolist()
+        price  = float(df1h["Close"].iloc[-1])
+        ts     = df1h.index[-1]
+        dt     = ts.to_pydatetime()
+
+        # BOS
+        def ema_s(v, p):
+            out = [float("nan")] * len(v)
+            if len(v) < p: return out
+            k = 2/(p+1); e = float(np.mean(v[:p])); out[p-1] = e
+            for i in range(p, len(v)): e = v[i]*k+e*(1-k); out[i] = e
+            return out
+        ev = ema_s(closes, 21); valid = [x for x in ev if x == x]
+        bull = len(valid) > 8 and valid[-1] > valid[-9]
+        bear = len(valid) > 8 and valid[-1] < valid[-9]
+        trend20 = closes[-1] - closes[-20] if len(closes) >= 20 else 0
+        n = len(closes)
+        t72 = closes[-1] - closes[-FILTER_TREND_BARS] if n >= FILTER_TREND_BARS else closes[-1] - closes[0]
+        t72p = t72 / closes[-1] if closes[-1] > 0 else 0
+
+        # ATR
+        h = np.array(highs[-16:]); l = np.array(lows[-16:]); c = np.array(closes[-16:])
+        tr = np.maximum(h[1:]-l[1:], np.maximum(abs(h[1:]-c[:-1]), abs(l[1:]-c[:-1])))
+        f_atr = float(np.mean(tr[-14:])) if len(tr) >= 14 else float(np.mean(tr))
+        h2 = np.array(highs[-32:]); l2 = np.array(lows[-32:]); c2 = np.array(closes[-32:])
+        tr2 = np.maximum(h2[1:]-l2[1:], np.maximum(abs(h2[1:]-c2[:-1]), abs(l2[1:]-c2[:-1])))
+        f_avg = float(np.mean(tr2[-20:])) if len(tr2) >= 20 else float(np.mean(tr2))
+        f_ratio = f_atr / f_avg if f_avg > 0 else 1.0
+        f_body = abs(float(df1h["Close"].iloc[-1]) - float(df1h["Open"].iloc[-1])) / f_atr if f_atr > 0 else 0
+        f_bull = float(df1h["Close"].iloc[-1]) >= float(df1h["Open"].iloc[-1])
+
+        # Current conditions summary
+        bos_str   = "Bullish" if bull else ("Bearish" if bear else "Neutral")
+        atr_ok    = FILTER_ATR_LOW <= f_ratio <= FILTER_ATR_HIGH
+        hour_ok   = dt.hour not in FILTER_BAD_HOURS
+        crash_ok  = t72p >= FILTER_TREND_PCT
+
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("GC=F Price", f"${price:,.1f}")
+        c2.metric("BOS", bos_str, delta=None)
+        c3.metric("ATR Regime", f"{f_ratio:.2f}x", delta="OK" if atr_ok else "BLOCKED")
+        c4.metric("72H Trend", f"{t72p*100:+.1f}%", delta="OK" if crash_ok else "BLOCKED")
+        c5.metric("Hour UTC", str(dt.hour), delta="OK" if hour_ok else "BLOCKED")
+
+        st.markdown(f"*Last bar: {str(ts)[:16]} UTC  |  Active zones: {len(active)}*")
+        st.markdown("---")
+
+        # Build zone table
+        rows = []
+        for z in sorted(active, key=lambda z: abs(price - (z["htf_top"]+z["htf_bottom"])/2))[:10]:
+            mid  = (z["htf_top"] + z["htf_bottom"]) / 2
+            dist = price - mid
+            inside = z["htf_bottom"] <= price <= z["htf_top"]
+            loc    = "◀ INSIDE" if inside else ("▲ above" if price > z["htf_top"] else "▼ below")
+
+            # Check if signal would fire
+            blocks = []
+            if z["type"] == "demand":
+                if not bull:       blocks.append("BOS↓")
+                if trend20 < 0:    blocks.append("trend20-")
+                if t72p < FILTER_TREND_PCT: blocks.append("crash")
+            else:
+                if not bear:       blocks.append("BOS↑")
+                if trend20 > 0:    blocks.append("trend20+")
+            if not atr_ok:         blocks.append(f"ATR {f_ratio:.2f}")
+            if dt.hour in FILTER_BAD_HOURS: blocks.append(f"hr{dt.hour}")
+            signed = f_body if (z["type"]=="demand" and f_bull) or (z["type"]=="supply" and not f_bull) else -f_body
+            if FILTER_BODY_LOW <= signed < FILTER_BODY_HIGH: blocks.append(f"body")
+
+            if inside and not blocks:
+                signal = "SIGNAL READY"
+            elif inside:
+                signal = "Blocked: " + " | ".join(blocks)
+            else:
+                signal = "—"
+
+            rows.append({
+                "Type":    z["type"].upper(),
+                "HTF Zone":f"${z['htf_bottom']:,.0f} – ${z['htf_top']:,.0f}",
+                "Entry (refined)": f"${z['refined_bottom']:,.1f} – ${z['refined_top']:,.1f}",
+                "Dist $":  f"{dist:+,.1f}",
+                "Location":loc,
+                "Signal":  signal,
+            })
+
+        df_zones = pd.DataFrame(rows)
+
+        def color_rows(row):
+            base = "background-color:#1a2e1a;color:#14835f" if row["Type"] == "DEMAND" \
+                   else "background-color:#2e1a1a;color:#c45d48"
+            styles = [base] * len(row)
+            if "SIGNAL READY" in row["Signal"]:
+                styles[-1] = "background-color:#14835f;color:#fff;font-weight:700"
+            elif "Blocked" in row["Signal"]:
+                styles[-1] = "color:#888"
+            return styles
+
+        styled = df_zones.style.apply(color_rows, axis=1)
+        st.dataframe(styled, width="stretch", height=380)
+
+    except Exception as e:
+        st.warning(f"Zone data unavailable: {e}")
+
+
 # ── Main render ──────────────────────────────────────────────────────────────
 snapshot = build_snapshot("GC=F")
 render_hero(snapshot)
+st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
+render_zone_levels()
 st.markdown('<div class="divider-space"></div>', unsafe_allow_html=True)
 render_asset(snapshot, "GC=F")
 render_sidebar()
