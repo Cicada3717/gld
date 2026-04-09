@@ -673,7 +673,7 @@ def run(capital=CAPITAL, paper=PAPER):
                         if drift > 0.003:
                             print(f"    STALE: bar close ${price:.2f} vs live ${gld_now:.2f} "
                                   f"({drift*100:.2f}% drift) — skip")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
 
                         qty = calc_qty(capital, gld_now, (gld_now - stop))
                         if qty < 0.01:
@@ -684,16 +684,16 @@ def run(capital=CAPITAL, paper=PAPER):
                         signed_body = f_body_pct if f_body_bull else -f_body_pct
                         if ts.hour in FILTER_BAD_HOURS:
                             print(f"    FILTER: bad hour {ts.hour}:00 UTC — skip LONG")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
                         if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
                             print(f"    FILTER: ATR ratio {f_atr_ratio:.2f} outside range — skip")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
                         if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
                             print(f"    FILTER: small-confirm body {signed_body:.2f} — skip")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
                         if trend_72h_pct < FILTER_TREND_PCT:
                             print(f"    FILTER: 72H drop {trend_72h_pct*100:+.2f}% crash — skip LONG")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
                         # ─────────────────────────────────────────────
 
                         print(f"\n  *** SIGNAL: LONG GLD @ ~${gld_now:.2f}  stop=${stop:.2f}  target=${target:.2f}  R:R={rr:.1f} ***")
@@ -763,7 +763,7 @@ def run(capital=CAPITAL, paper=PAPER):
                         if drift > 0.003:
                             print(f"    STALE: bar close ${price:.2f} vs live ${gld_now:.2f} "
                                   f"({drift*100:.2f}% drift) — skip")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
 
                         qty = calc_qty(capital, gld_now, (stop - gld_now))
                         if qty < 0.01:
@@ -773,13 +773,13 @@ def run(capital=CAPITAL, paper=PAPER):
                         signed_body = f_body_pct if not f_body_bull else -f_body_pct
                         if ts.hour in FILTER_BAD_HOURS:
                             print(f"    FILTER: bad hour {ts.hour}:00 UTC — skip SHORT")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
                         if not (FILTER_ATR_LOW <= f_atr_ratio <= FILTER_ATR_HIGH):
                             print(f"    FILTER: ATR ratio {f_atr_ratio:.2f} outside range — skip")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
                         if FILTER_BODY_LOW <= signed_body < FILTER_BODY_HIGH:
                             print(f"    FILTER: small-confirm body {signed_body:.2f} — skip")
-                            zone["consumed"] = True; zone["consumed_date"] = bdate; break
+                            break
                         # (no 72H crash filter on SHORTs — crashes are good for shorts)
                         # ─────────────────────────────────────────────
 
